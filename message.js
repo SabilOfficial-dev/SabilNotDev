@@ -920,11 +920,12 @@ bot.start(async (ctx) => {
 async function showMenu1(ctx, messageId = null) {
     const bottime = getBotRuntime();
     const caption = `
-<blockquote><b>━═━═━═━═━𝑊𝑒𝑙𝑐𝑜𝑚𝑒 𝑇𝑜 𝐼𝑛 𝐵𝑜𝑡 𝑂𝑏𝑓𝑢𝑠𝑐𝑎𝑡𝑒𝑑━═━═━═━═━</b></blockquote>
+<blockquote><b>╾═━═━═╼𝑊𝑒𝑙𝑐𝑜𝑚𝑒 𝑇𝑜 𝐼𝑛 𝐵𝑜𝑡 𝑂𝑏𝑓𝑢𝑠𝑐𝑎𝑡𝑒𝑑╾═━═━═╼</b></blockquote>
 𝑆𝑖𝑠𝑡𝑒𝑚 : 𝐵𝑒𝑏𝑎𝑠 𝐴𝑘𝑠𝑒𝑠
 𝑅𝑢𝑛𝑡𝑖𝑚𝑒 𝐵𝑜𝑡 : ${bottime}
 𝐹𝑖𝑡𝑢𝑟 : 𝑂𝑏𝑓/𝐸𝑛𝑐𝑟𝑦𝑝𝑡 𝐹𝑖𝑙𝑒,𝐶ℎ𝑎𝑡 𝐴𝑖,𝐶𝑒𝑘 𝑒𝑟𝑟𝑜𝑟/𝐶𝑒𝑘 𝐹𝑢𝑛𝑐,𝐷𝑙𝑙.
-<blockquote><b>━═━═━═━═━Rasulullah ﷺ bersabda━═━═━═━═━</b></blockquote>
+<blockquote><b>╾═━═━═╼Rasulullah ﷺ bersabda╾═━═━═╼</b></blockquote>
+
 «التاجر الصدوق الأمين مع الأنبياء
 والصديقين والشهداء»
 “Pedagang yang jujur dan amanah akan
@@ -969,7 +970,7 @@ async function showMenu2(ctx, messageId = null) {
 <b>▢ /cleancode Reply File/code</b>
 <b>▢ /ai 𝖢𝗁𝖺𝗍 teks</b>
 <b>▢ /getsource Link Https</b>
-<blockquote>༺ღ༒༺ღ༒ ༒ღ༻༒ღ༻</blockquote>
+<blockquote>༺ღ༒༺ღ༒ღ༻༒ღ༻</blockquote>
 `;
     const thumb = await getThumbnailBuffer();
     if (messageId) {
@@ -997,7 +998,7 @@ async function showMenu2(ctx, messageId = null) {
 
 async function EncV1(ctx, messageId = null) {
     const caption = `
-<𝖻𝗅𝗈𝖼𝗄𝗊𝗎𝗈𝗍𝖾><𝖻>╾═━═━═━═╼ 𝖤𝗇𝖼 𝖵𝟣 ╾═━═━═━═╼</𝖻></𝖻𝗅𝗈𝖼𝗄𝗊𝗎𝗈𝗍𝖾>
+<blockquote><b>╾═━═━═╼ 𝖤𝗇𝖼 𝖵𝟣 ╾═━═━═╼</b></blockquote>
 <b>▢ /artillery Light & Secure 𝗉𝗋𝗈𝗍𝖾𝖼𝗍𝗂𝗈𝗇</b>
 <b>▢ /hardcode Max Protection mode</b>
 <b>▢ /phantom Invisible & Strong code</b>
@@ -1006,11 +1007,11 @@ async function EncV1(ctx, messageId = null) {
 <b>▢ /rosemary 𝖴𝗅𝗍𝗋𝖺 𝖣𝖾𝖿𝖾𝗇𝗌𝖾 𝗆𝗈𝖽𝖾</b>
 <b>▢ /enctime 𝟥𝟢 (𝟥𝟢 𝗁𝖺𝗋𝗂)</b>
 <b>▢ /hardhtml Encrypt Hard Html</b>
-<blockquot><b>╾═━═━═━═╼ 𝖢𝖺𝗋𝖺 𝖯𝖾𝗇𝗀𝗀𝗎𝗇𝖺𝖺𝗇 ╾═━═━═━═╼</b></blockquote>
+<blockquot><b>╾═━═━═╼ 𝖢𝖺𝗋𝖺 𝖯𝖾𝗇𝗀𝗀𝗎𝗇𝖺𝖺𝗇 ╾═━═━═╼</b></blockquote>
 <b>/enctime 30</b>
 <b>Jadi setiap angka = 1hari</b>
 <b>Jadi kalo 10 = 10hari</b>
-<blockquote>╾═━═━═━═━═━═━═━═━═━═━═━═━═━═━═━═━</blockquote>
+<blockquote>╾═━═━═━═━═━═━═━═━═━═━═━═━═╼</blockquote>
 `;
     const thumb = await getThumbnailBuffer();
     if (messageId) {
@@ -1038,7 +1039,7 @@ async function EncV1(ctx, messageId = null) {
 
 async function EncV2(ctx, messageId = null) {
     const caption = `
-<blockquote><b>╾═━═━═━═╼ 𝖤𝗇𝖼 𝖵𝟤 ╾═━═━═━═╼</b></blockquote>
+<blockquote><b>╾═━═━═╼ 𝖤𝗇𝖼 𝖵𝟤 ╾═━═━═╼</b></blockquote>
 <b>▢ /enccustom 𝖢𝗎𝗌𝗍𝗈𝗆 𝖭𝖺𝗆𝖾</b>
 <b>▢ /invisenc 𝖨𝗇𝗏𝗂𝗌𝖻𝗅𝖾 𝖧𝖺𝗋𝖽</b>
 <b>▢ /japanenc 𝖩𝖺𝗉𝖺𝗇𝖾𝗌𝖾 𝖲𝗍𝗒𝗅𝖾</b>
@@ -1048,10 +1049,10 @@ async function EncV2(ctx, messageId = null) {
 <b>▢ /nebula 𝖭𝖾𝖻𝗎𝗅𝖺 𝖲𝗍𝗒𝗅𝖾</b>
 <b>▢ /var 𝖵𝖺𝗋 𝖲𝗍𝗒𝗅𝖾</b>
 <b>▢ /invishtml Encrypt Hmtl</b>
-<blockquot><b>╾═━═━═━═╼  𝖢𝖺𝗋𝖺 𝖯𝖾𝗇𝗀𝗀𝗎𝗇𝖺𝖺𝗇 ╾═━═━═━═╼</b></blockquote>
+<blockquot><b>╾═━═━═╼  𝖢𝖺𝗋𝖺 𝖯𝖾𝗇𝗀𝗀𝗎𝗇𝖺𝖺𝗇 ╾═━═━═╼</b></blockquote>
 <b>/enccustom</b> </code>果Prime皮Sabil出Official去</code>
 <b>Jangan ada spasi dalam text</b>
-<blockquote>╾═━═━═━═━═━═━═━═━═━═━═━═━═━═━═━═━</blockquote>
+<blockquote>╾═━═━═━═━═━═━═━═━═━═━═━═━═━</blockquote>
 `;
     const thumb = await getThumbnailBuffer();
     if (messageId) {
@@ -1593,7 +1594,7 @@ ctx.reply(String(e))
 
 })
 
-bot.command("cekcode", async (ctx) => {
+bot.command("cekfunc", async (ctx) => {
 try {
 
 if (!ctx.message.reply_to_message)
