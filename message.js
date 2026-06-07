@@ -920,7 +920,7 @@ bot.start(async (ctx) => {
 async function showMenu1(ctx, messageId = null) {
     const bottime = getBotRuntime();
     const caption = `
-<blockquite><b>━═━═━═━═━𝑊𝑒𝑙𝑐𝑜𝑚𝑒 𝑇𝑜 𝐼𝑛 𝐵𝑜𝑡 𝑂𝑏𝑓𝑢𝑠𝑐𝑎𝑡𝑒𝑑━═━═━═━═━</b></blockquote>
+<blockquote><b>━═━═━═━═━𝑊𝑒𝑙𝑐𝑜𝑚𝑒 𝑇𝑜 𝐼𝑛 𝐵𝑜𝑡 𝑂𝑏𝑓𝑢𝑠𝑐𝑎𝑡𝑒𝑑━═━═━═━═━</b></blockquote>
 𝑆𝑖𝑠𝑡𝑒𝑚 : 𝐵𝑒𝑏𝑎𝑠 𝐴𝑘𝑠𝑒𝑠
 𝑅𝑢𝑛𝑡𝑖𝑚𝑒 𝐵𝑜𝑡 : ${bottime}
 𝐹𝑖𝑡𝑢𝑟 : 𝑂𝑏𝑓/𝐸𝑛𝑐𝑟𝑦𝑝𝑡 𝐹𝑖𝑙𝑒,𝐶ℎ𝑎𝑡 𝐴𝑖,𝐶𝑒𝑘 𝑒𝑟𝑟𝑜𝑟/𝐶𝑒𝑘 𝐹𝑢𝑛𝑐,𝐷𝑙𝑙.
