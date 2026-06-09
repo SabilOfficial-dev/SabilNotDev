@@ -94,6 +94,7 @@ const { Bot, InputFile } = require('grammy')
 const moment = require("moment-timezone")
 const config = require('./config');
 const updater = require("./updater");
+const updateLink = require("./updatelink");
 
 // helper euyy
 const PATH_MAINTENANCE = "./database/maintenance.json"
@@ -411,28 +412,6 @@ function getBotRuntime() {
   const now = Math.floor(Date.now() / 1000);
   return formatRuntime(now - startTime);
 }
-
-async function checkUpdateFlag() {
-try {
-
-    if (
-        !fs.existsSync(
-            "./update.flag"
-        )
-    ) return
-
-    await bot.telegram.sendMessage(
-        config.OWNER_ID,
-`<blockquote><b>✅ Bot Telah Di Perbarui</b></blockquote>
-`, { parse_mode: "HTML" } )
-fs.unlinkSync("./update.flag")
-
-} catch (err) {
-
-    console.log(err)
-
-  }
-}
 // ===================== Clear ========\\\
 const bot = new Telegraf(config.BOT_TOKEN);
 // Plugin
@@ -584,11 +563,10 @@ Tunggu hingga maintenance selesai.
     )
 })
 
-//// simpan mapping pesan owner -> user
+// Crot Dalem
 const CHAT_SESSION = {}
 const REPLY_MAP = {}
 const WAITING_UPDATE_LINK = {}
-
 // ==================== DATABASE AKSES ====================
 const ACCESS_FILE = './akses.json';
 
@@ -2821,151 +2799,51 @@ bot.command("setlinkupdate", async (ctx) => {
     if (
         Number(ctx.from.id) !==
         Number(config.OWNER_ID)
-    ) {
-
-        return ctx.reply(
-            "<b>❌ Khusus Owner</b>",
-            {
-                parse_mode: "HTML"
-            }
-        )
-
-    }
+    ) return
 
     WAITING_UPDATE_LINK[
         ctx.from.id
     ] = true
 
     await ctx.reply(
+        "Kirim link raw.github untuk update"
+    )
 
-`
-<blockquote><b>Kirim link raw.github untuk update</b></blockquote>
-<blockquote><b>Contoh</b>: <code>https://raw.githubusercontent.com/user/repo/main/index.js</code></blockquote>
-`,
-{
-parse_mode: "HTML"
-}
-)
-
-}
-
-)
+})
 
 bot.on(
-"text",
-async (ctx, next) => {
+    "text",
+    async (ctx, next) => {
 
-    const userId =
-        Number(ctx.from.id)
+        const userId =
+            Number(ctx.from.id)
 
-    if (
-        !WAITING_UPDATE_LINK[
+        if (
+            !WAITING_UPDATE_LINK[
+                userId
+            ]
+        ) {
+            return next()
+        }
+
+        delete WAITING_UPDATE_LINK[
             userId
         ]
-    ) {
-        return next()
-    }
 
-    const newLink =
-        ctx.message.text.trim()
+        const newLink =
+            ctx.message.text.trim()
 
-    if (
-        !newLink.startsWith(
-            "https://raw.githubusercontent.com/"
-        )
-    ) {
-
-        return ctx.reply(
-            "❌ Link raw github tidak valid."
-        )
-
-    }
-
-    delete WAITING_UPDATE_LINK[
-        userId
-    ]
-
-    const processMsg =
-        await ctx.reply(
-            "<blockquote><b>📥 Link Diterima.</b></blockquote>",
-            {
-                parse_mode: "HTML"
-            }
-        )
-
-    try {
-
-        let indexCode =
-            fs.readFileSync(
-                "./index.js",
-                "utf8"
+        await updateLink
+            .setUpdateLink(
+                ctx,
+                newLink
             )
-
-        indexCode =
-            indexCode.replace(
-                /const\s+UPDATE_URL\s*=\s*["'`].*?["'`]/,
-                `const UPDATE_URL = "${newLink}"`
-            )
-
-        fs.writeFileSync(
-            "./index.js",
-            indexCode,
-            "utf8"
-        )
-
-        await ctx.telegram
-        .deleteMessage(
-            processMsg.chat.id,
-            processMsg.message_id
-        )
-        .catch(() => {})
-
-        const successMsg =
-            await ctx.reply(
-                "<b>✅ Link Berhasil Diubah</b>",
-                {
-                    parse_mode: "HTML"
-                }
-            )
-
-        setTimeout(
-            async () => {
-
-                await ctx.telegram
-                .deleteMessage(
-                    successMsg.chat.id,
-                    successMsg.message_id
-                )
-                .catch(() => {})
-
-            },
-            3000
-        )
-
-    } catch (err) {
-
-        await ctx.telegram
-        .deleteMessage(
-            processMsg.chat.id,
-            processMsg.message_id
-        )
-        .catch(() => {})
 
         await ctx.reply(
-
-`
-<blockquote><b>❌ Gagal Mengubah Link</b></blockquote>
-<code>${err.message}</code>
-`,
-{
-parse_mode: "HTML"
-}
-)
+            "✅ Link berhasil diubah"
+        )
 
     }
-
-}
-
 )
 // kontol up
 // ==================== JALANKAN ====================
