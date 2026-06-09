@@ -1051,7 +1051,7 @@ async function EncV2(ctx, messageId = null) {
 <b>▢ /var 𝖵𝖺𝗋 𝖲𝗍𝗒𝗅𝖾</b>
 <b>▢ /invishtml Encrypt Hmtl</b>
 <blockquote><b>╾═━═╼  𝖢𝖺𝗋𝖺 𝖯𝖾𝗇𝗀𝗀𝗎𝗇𝖺𝖺𝗇 ╾═━═╼</b></blockquote>
-<b>/enccustom</b> </code>果Prime皮Sabil出Official去</code>
+<b>/enccustom</b> <code>果Prime皮Sabil出Official去</code>
 <b>Jangan ada spasi dalam text</b>
 <blockquote>╾═━═━═━═━═━═━═━═━═━</blockquote>
 `;
