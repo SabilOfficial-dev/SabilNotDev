@@ -72,7 +72,8 @@ const modules = [
     "os",
     "vm",
     "http",
-    "https"
+    "https",
+    "chalk@4"
 
 ]
 
@@ -92,6 +93,7 @@ const acorn = require('acorn')
 const path = require('path')
 const { Bot, InputFile } = require('grammy')
 const moment = require("moment-timezone")
+const chalk = require('chalk');
 const config = require('./config');
 const updater = require("./updater");
 const updateLink = require("./updatelink");
@@ -132,6 +134,18 @@ const BACKUP_DIR =
 path.join(__dirname, "backup")
 
 
+console.clear()
+console.log(chalk.green(`
+█▀ █▄░█ ▄▀ █▀▀▄ █░█ █▀▄ ▀█▀
+█▀ █░▀█ █░ █▐█▀ ▀▄▀ █▄█ ░█░
+▀▀ ▀░░▀ ░▀ ▀░▀▀ ░▀░ ▀░░ ░▀░
+`));
+console.log(chalk.cyan(`
+Developer : @SabilOfficial
+Version : 1 Gen 2
+Name : Obfuscated Bot
+System : Hard And Free
+Status : Bot Acctive`));
 
 // =============================
 // CREATE BACKUP DIR
@@ -146,9 +160,6 @@ if (!fs.existsSync(BACKUP_DIR)) {
     )
 }
 
-const UPDATE_URL =
-"https://raw.githubusercontent.com/SabilOfficial-dev/SabilNotDev/main/message.js"
-
 const LOCAL_FILE = "./index.js"
 
 const UPDATE_FLAG =
@@ -156,7 +167,6 @@ const UPDATE_FLAG =
 
 // Func
 const pause = (ms) => new Promise(resolve => setTimeout(resolve, ms))
-
 const E = {
   bot: `<tg-emoji emoji-id='5987802868734760945'>✨</tg-emoji>`,
   botStar: `<tg-emoji emoji-id='4956232383721374836'>✨</tg-emoji>`,
@@ -412,6 +422,7 @@ function getBotRuntime() {
   const now = Math.floor(Date.now() / 1000);
   return formatRuntime(now - startTime);
 }
+
 // ===================== Clear ========\\\
 const bot = new Telegraf(config.BOT_TOKEN);
 // Plugin
@@ -434,7 +445,7 @@ bot.telegram.setMyCommands([
     }   
 ])
 .then(() => {
-    console.log('Success register cmd')
+    console.log(chalk.cyan('Success register cmd'));
 })
 .catch(console.error)
 
@@ -563,10 +574,11 @@ Tunggu hingga maintenance selesai.
     )
 })
 
-// Crot Dalem
+//// simpan mapping pesan owner -> user
 const CHAT_SESSION = {}
 const REPLY_MAP = {}
-const WAITING_UPDATE_LINK = {}
+
+
 // ==================== DATABASE AKSES ====================
 const ACCESS_FILE = './akses.json';
 
@@ -611,29 +623,36 @@ const openMenuKeyboard = {
     inline_keyboard: [
     [
       { 
-        text: "👑", 
+        text: "Menu", 
+        callback_data: "tools_menu", 
+        style: "success"
+       }
+     ],
+     [
+      { 
+        text: "👑 Owner", 
         url: "https://t.me/sabilofficial",
-        style: "success" 
+        style: "primary"
        },
       { 
-        text: "⇨", 
-        callback_data: "tools_menu", 
-        style: "primary" 
-       } 
-    ]
-  ]
+        text: "👾 𝖢𝗁𝖺𝗇𝗇𝖾𝗅",
+        url: "t.me/aboutbil",
+        style: "danger"
+      }
+     ]
+   ]
 };
 
 const OwnKb = {
     inline_keyboard: [
         [
          { 
-          text: "⇦", 
+          text: "Back", 
           callback_data: "main_menu",
-          style: "primary"
+          style: "success"
          },
          { 
-          text: "⇨", 
+          text: "Next", 
           callback_data: "tools_menu",
           style: "danger"
          }
@@ -645,12 +664,12 @@ const ToolsKeyboard = {
     inline_keyboard: [
         [
          { 
-          text: "⇦", 
+          text: "Back", 
           callback_data: "main_menu",
           style: "primary"
          },
          { 
-          text: "⇨", 
+          text: "Next", 
           callback_data: "enc_menu_v1",
           style: "danger"
          }
@@ -662,12 +681,12 @@ const EncV1Keyboard = {
     inline_keyboard: [
         [
          { 
-          text: "⇦", 
+          text: "Back", 
           callback_data: "tools_menu",
           style: "success"
          },
          { 
-          text: "⇨", 
+          text: "Next", 
           callback_data: "enc_menu_v2",
           style: "primary"
          }
@@ -679,25 +698,24 @@ const EncV2Keyboard = {
     inline_keyboard: [
         [
          { 
-          text: "⇦", 
+          text: "Back", 
           callback_data: "enc_menu_v1",
           style: "danger"
          },
          { 
-          text: "⇨", 
+          text: "Next", 
           callback_data: "main_menu",
           style: "success" 
          }
        ]
     ]
 };
-
 // wik wok the tolk
 async function sendEncryptProgress(ctx, waitMsg, modeName) {
     const steps = [
         { percent: 20, text: `⚙️ Mengunduh file (mode: ${modeName})`, delay: 600 },
         { percent: 40, text: `⚙️ PROSES ENCRYPT (${modeName})`, delay: 800 },
-        { percent: 70, text: `⚙️ Encrypting dengan algoritma ${modeName}...`, delay: 800 },
+        { percent: 70, text: `⚙️ Encrypting dengan algoritma ${modeName}...`, delay: 5000 },
         { percent: 80, text: `⚙️ Penyelesaian Encrypt... Cukup Lama`, delay: 4000 },
         { percent: 100, text: `✅ File berhasil diencrypt! (${modeName})`, delay: 500 }
     ];
@@ -705,7 +723,8 @@ async function sendEncryptProgress(ctx, waitMsg, modeName) {
         const barLength = 10;
         const filled = Math.round((step.percent / 100) * barLength);
         const bar = '▰'.repeat(filled) + '▱'.repeat(barLength - filled);
-        await ctx.telegram.editMessageText(waitMsg.chat.id, waitMsg.message_id, undefined, `<pre>✅ Encrypt Berjalan\n${step.text}\n${bar} ${step.percent}%</pre>`, { parse_mode: 'HTML' });
+        await ctx.telegram.editMessageText(waitMsg.chat.id, waitMsg.message_id, undefined, `\`\`\`js
+   ✅ Encrypt Berjalan\n${step.text}\n${bar} ${step.percent}%\`\`\``, { parse_mode: 'Markdown' });
         await new Promise(resolve => setTimeout(resolve, step.delay));
     }
 }
@@ -898,19 +917,24 @@ bot.start(async (ctx) => {
 // ==================== TAMPILAN MENU ====================
 async function showMenu1(ctx, messageId = null) {
     const bottime = getBotRuntime();
-    const caption = `
-<blockquote><b>╾═━═╼𝑊𝑒𝑙𝑐𝑜𝑚𝑒 𝑇𝑜 𝐼𝑛 𝐵𝑜𝑡 𝑂𝑏𝑓𝑢𝑠𝑐𝑎𝑡𝑒𝑑╾═━═╼</b></blockquote>
-𝑆𝑖𝑠𝑡𝑒𝑚 : 𝐵𝑒𝑏𝑎𝑠 𝐴𝑘𝑠𝑒𝑠
-𝑅𝑢𝑛𝑡𝑖𝑚𝑒 𝐵𝑜𝑡 : ${bottime}
-𝐹𝑖𝑡𝑢𝑟 : 𝑂𝑏𝑓/𝐸𝑛𝑐𝑟𝑦𝑝𝑡 𝐹𝑖𝑙𝑒,𝐶ℎ𝑎𝑡 𝐴𝑖,𝐶𝑒𝑘 𝑒𝑟𝑟𝑜𝑟/𝐶𝑒𝑘 𝐹𝑢𝑛𝑐,𝐷𝑙𝑙.
-<blockquote><b>╾═━═╼Rasulullah ﷺ bersabda╾═━═╼</b></blockquote>
+    const caption = `\`\`\`js
+╔══════✮❁•°♛°•❁✮ ═════╗
+    𝐖𝐞𝐥𝐜𝐨𝐦𝐞 𝐓𝐨   ─  𝐔𝐬𝐞𝐫𝐬
+       𝐁𝐲 : 𝐒𝐚𝐛𝐢𝐥𝐎𝐟𝐟𝐢𝐜𝐢𝐚𝐥
+╚══════✮❁•°❀°•❁✮══════╝
+ 
+▢ System : Free Access Activated
+▢ Usename : ${ctx.from.username}
+▢ Id : ${ctx.from.id}
+▢ Runtime : ${bottime}
+▢ Featur : Encrypt For File,Tools,Dll
 
-«التاجر الصدوق الأمين مع الأنبياء
-والصديقين والشهداء»
-“Pedagang yang jujur dan amanah akan
-bersama para nabi, orang-orang
-yang benar, dan para syuhada.”
-(HR. Tirmidzi)
+🔥 𝖲𝗒𝗌𝗍𝖾𝗆 𝖲𝖼𝗎𝗋𝗂𝗍𝗒
+▢ 𝖠𝗇𝗍𝗂 𝖤𝗋𝗋𝗈𝗋
+▢ 𝖤𝗇𝖼 𝖧𝖺𝗋𝖽 𝟣𝟢𝟢%
+▢ 𝖠𝗇𝗍𝗂 𝖡𝗒𝗉𝖺𝗌𝗌 𝖲𝖼𝗋𝗂𝗉𝗍/𝗐𝖾𝖻
+▢ 𝖠𝗇𝗍𝗂 𝖢𝗋𝖺𝖼𝗄 𝖲𝖼𝗋𝗂𝗉𝗍/𝗐𝖾𝖻
+▢ 𝖧𝖺𝗋𝖽 𝖮𝖻𝖿\`\`\`
 `;
     const thumb = await getThumbnailBuffer();
     if (messageId) {
@@ -920,36 +944,36 @@ yang benar, dan para syuhada.”
                 type: 'photo',
                 media: { source: thumb },
                 caption,
-                parse_mode: 'HTML'
+                parse_mode: 'Markdown'
             }, { reply_markup: openMenuKeyboard });
         } else {
             await ctx.telegram.editMessageText(ctx.chat.id, messageId, undefined, caption, {
-                parse_mode: 'HTML',
+                parse_mode: 'Markdown',
                 reply_markup: openMenuKeyboard
             });
         }
     } else {
         // Kirim pesan baru
         if (thumb) {
-            await ctx.replyWithPhoto({ source: thumb }, { caption, parse_mode: 'HTML', reply_markup: openMenuKeyboard });
+            await ctx.replyWithPhoto({ source: thumb }, { caption, parse_mode: 'Markdown', reply_markup: openMenuKeyboard });
         } else {
-            await ctx.reply(caption, { parse_mode: 'HTML', reply_markup: openMenuKeyboard });
+            await ctx.reply(caption, { parse_mode: 'Markdown', reply_markup: openMenuKeyboard });
         }
     }
 }
 
 async function showMenu2(ctx, messageId = null) {
-    const caption = `
-<blockquote><b>༺ღ༒ 𝖳𝗈𝗈𝗅𝗌 𝖬𝖾𝗇𝗎 ༒ღ༻</b></blockquote>
-<b>▢ /cekfunc Reply 𝖥𝗎𝗇𝖼</b>
-<b>▢ /cekerror Reply file/code</b>
-<b>▢ /infoerror Reply File/code</b>
-<b>▢ /cekidemoji Reply emoji</b>
-<b>▢ /fixerror Reply file/code</b>
-<b>▢ /cleancode Reply File/code</b>
-<b>▢ /ai 𝖢𝗁𝖺𝗍 teks</b>
-<b>▢ /getsource Link Https</b>
-<blockquote>༺ღ༒༺ღ༒ღ༻༒ღ༻</blockquote>
+    const caption = `\`\`\`js
+━━ 🛠️ 𝖳𝗈𝗈𝗅𝗌 𝖬𝖾𝗇𝗎 ━━
+
+ ♱ /cekcode Reply code
+ ♱ /cekerror Reply file/code
+ ♱ /infoerror Reply File/code
+ ♱ /cekidemoji Reply emoji
+ ♱ /fixerror Reply file/code
+ ♱ /cleancode Reply File/code
+ ♱ /ai 𝖢𝗁𝖺𝗍 teks
+ ♱ /getsource Link Https\`\`\`
 `;
     const thumb = await getThumbnailBuffer();
     if (messageId) {
@@ -958,39 +982,40 @@ async function showMenu2(ctx, messageId = null) {
                 type: 'photo',
                 media: { source: thumb },
                 caption,
-                parse_mode: 'HTML'
+                parse_mode: 'Markdown'
             }, { reply_markup: ToolsKeyboard });
         } else {
             await ctx.telegram.editMessageText(ctx.chat.id, messageId, undefined, caption, {
-                parse_mode: 'HTML',
+                parse_mode: 'Markdown',
                 reply_markup: ToolsKeyboard
             });
         }
     } else {
         if (thumb) {
-            await ctx.replyWithPhoto({ source: thumb }, { caption, parse_mode: 'HTML', reply_markup: ToolsKeyboard });
+            await ctx.replyWithPhoto({ source: thumb }, { caption, parse_mode: 'Markdown', reply_markup: ToolsKeyboard });
         } else {
-            await ctx.reply(caption, { parse_mode: 'HTML', reply_markup: ToolsKeyboard });
+            await ctx.reply(caption, { parse_mode: 'Markdown', reply_markup: ToolsKeyboard });
         }
     }
 }
 
 async function EncV1(ctx, messageId = null) {
-    const caption = `
-<blockquote><b>╾═━═╼ 𝖤𝗇𝖼 𝖵𝟣 ╾═━═╼</b></blockquote>
-<b>▢ /artillery Light & Secure 𝗉𝗋𝗈𝗍𝖾𝖼𝗍𝗂𝗈𝗇</b>
-<b>▢ /hardcode Max Protection mode</b>
-<b>▢ /phantom Invisible & Strong code</b>
-<b>▢ /balanced Smart & Stable defense</b>
-<b>▢ /reversed Rename & Shield system</b>
-<b>▢ /rosemary 𝖴𝗅𝗍𝗋𝖺 𝖣𝖾𝖿𝖾𝗇𝗌𝖾 𝗆𝗈𝖽𝖾</b>
-<b>▢ /enctime 𝟥𝟢 (𝟥𝟢 𝗁𝖺𝗋𝗂)</b>
-<b>▢ /hardhtml Encrypt Hard Html</b>
-<blockquote><b>╾═━═╼ 𝖢𝖺𝗋𝖺 𝖯𝖾𝗇𝗀𝗀𝗎𝗇𝖺𝖺𝗇 ╾═━═╼</b></blockquote>
-<b>/enctime 30</b>
-<b>Jadi setiap angka = 1hari</b>
-<b>Jadi kalo 10 = 10hari</b>
-<blockquote>╾═━═━═━═━═━═━═━═━═╼</blockquote>
+    const caption = `\`\`\`js
+━━ ⚙️ 𝖤𝗇𝖼𝗋𝗒𝗉𝗍 𝖬𝖾𝗇𝗎 𝖵𝟣 ━━
+ ♱ /artillery Light & Secure 𝗉𝗋𝗈𝗍𝖾𝖼𝗍𝗂𝗈𝗇
+ ♱ /hardcode Max Protection mode
+ ♱ /phantom Invisible & Strong code
+ ♱ /balanced Smart & Stable defense
+ ♱ /reversed Rename & Shield system
+ ♱ /rosemary 𝖴𝗅𝗍𝗋𝖺 𝖣𝖾𝖿𝖾𝗇𝗌𝖾 𝗆𝗈𝖽𝖾
+ ♱ /enctime 𝟥𝟢 (𝟥𝟢 𝗁𝖺𝗋𝗂)
+ ♱ /hardhtml Encrypt Hard Html
+
+━━ 🔍 Cara Penggunaan ━━
+ ♱ /enctime 30
+ ♱ Jadi setiap angka = 1hari
+ ♱ Jadi kalo 10 = 10hari\`\`\`
+
 `;
     const thumb = await getThumbnailBuffer();
     if (messageId) {
@@ -999,39 +1024,39 @@ async function EncV1(ctx, messageId = null) {
                 type: 'photo',
                 media: { source: thumb },
                 caption,
-                parse_mode: 'HTML'
+                parse_mode: 'Markdown'
             }, { reply_markup: EncV1Keyboard });
         } else {
             await ctx.telegram.editMessageText(ctx.chat.id, messageId, undefined, caption, {
-                parse_mode: 'HTML',
+                parse_mode: 'Markdown',
                 reply_markup: EncV1Keyboard
             });
         }
     } else {
         if (thumb) {
-            await ctx.replyWithPhoto({ source: thumb }, { caption, parse_mode: 'HTML', reply_markup: EncV1Keyboard });
+            await ctx.replyWithPhoto({ source: thumb }, { caption, parse_mode: 'Markdown', reply_markup: EncV1Keyboard });
         } else {
-            await ctx.reply(caption, { parse_mode: 'HTML', reply_markup: EncV1Keyboard });
+            await ctx.reply(caption, { parse_mode: 'Markdown', reply_markup: EncV1Keyboard });
         }
     }
 }
 
 async function EncV2(ctx, messageId = null) {
-    const caption = `
-<blockquote><b>╾═━═╼ 𝖤𝗇𝖼 𝖵𝟤 ╾═━═╼</b></blockquote>
-<b>▢ /enccustom 𝖢𝗎𝗌𝗍𝗈𝗆 𝖭𝖺𝗆𝖾</b>
-<b>▢ /invisenc 𝖨𝗇𝗏𝗂𝗌𝖻𝗅𝖾 𝖧𝖺𝗋𝖽</b>
-<b>▢ /japanenc 𝖩𝖺𝗉𝖺𝗇𝖾𝗌𝖾 𝖲𝗍𝗒𝗅𝖾</b>
-<b>▢ /encarab 𝖠𝗋𝖺𝖻 𝖲𝗍𝗒𝗅𝖾</b>
-<b>▢ /siuenc 𝖲𝗂𝗎 𝖲𝗍𝗒𝗅𝖾</b>
-<b>▢ /japan 𝖩𝖺𝗉𝖺𝗇 𝖲𝗍𝗒𝗅𝖾</b>
-<b>▢ /nebula 𝖭𝖾𝖻𝗎𝗅𝖺 𝖲𝗍𝗒𝗅𝖾</b>
-<b>▢ /var 𝖵𝖺𝗋 𝖲𝗍𝗒𝗅𝖾</b>
-<b>▢ /invishtml Encrypt Hmtl</b>
-<blockquote><b>╾═━═╼  𝖢𝖺𝗋𝖺 𝖯𝖾𝗇𝗀𝗀𝗎𝗇𝖺𝖺𝗇 ╾═━═╼</b></blockquote>
-<b>/enccustom</b> <code>果Prime皮Sabil出Official去</code>
-<b>Jangan ada spasi dalam text</b>
-<blockquote>╾═━═━═━═━═━═━═━═━═━</blockquote>
+    const caption = `\`\`\`js
+━━ ⚙️ 𝖤𝗇𝖼𝗋𝗒𝗉𝗍 𝖬𝖾𝗇𝗎 𝖵𝟤 ━━
+ ♱ /enccustom 𝖢𝗎𝗌𝗍𝗈𝗆 𝖭𝖺𝗆𝖾
+ ♱ /invisenc 𝖨𝗇𝗏𝗂𝗌𝖻𝗅𝖾 𝖧𝖺𝗋𝖽
+ ♱ /japanenc 𝖩𝖺𝗉𝖺𝗇𝖾𝗌𝖾 𝖲𝗍𝗒𝗅𝖾
+ ♱ /encarab 𝖠𝗋𝖺𝖻 𝖲𝗍𝗒𝗅𝖾
+ ♱ /siuenc 𝖲𝗂𝗎 𝖲𝗍𝗒𝗅𝖾
+ ♱ /japan 𝖩𝖺𝗉𝖺𝗇 𝖲𝗍𝗒𝗅𝖾
+ ♱ /nebula 𝖭𝖾𝖻𝗎𝗅𝖺 𝖲𝗍𝗒𝗅𝖾
+ ♱ /𝗏𝖺𝗋 𝖵𝖺𝗋 𝖲𝗍𝗒𝗅𝖾
+ ♱ /invishtml Encrypt Hmtl
+
+━━ 🔍 Cara Penggunaan ━━
+ ♱ /enccustom 果Prime皮Sabil出Official去
+ ♱ Jangan ada spasi dalam text\`\`\`
 `;
     const thumb = await getThumbnailBuffer();
     if (messageId) {
@@ -1040,19 +1065,19 @@ async function EncV2(ctx, messageId = null) {
                 type: 'photo',
                 media: { source: thumb },
                 caption,
-                parse_mode: 'HTML'
+                parse_mode: 'Markdown'
             }, { reply_markup: EncV2Keyboard });
         } else {
             await ctx.telegram.editMessageText(ctx.chat.id, messageId, undefined, caption, {
-                parse_mode: 'HTML',
+                parse_mode: 'Markdown',
                 reply_markup: EncV2Keyboard
             });
         }
     } else {
         if (thumb) {
-            await ctx.replyWithPhoto({ source: thumb }, { caption, parse_mode: 'HTML', reply_markup: EncV2Keyboard });
+            await ctx.replyWithPhoto({ source: thumb }, { caption, parse_mode: 'Markdown', reply_markup: EncV2Keyboard });
         } else {
-            await ctx.reply(caption, { parse_mode: 'HTML', reply_markup: EncV2Keyboard });
+            await ctx.reply(caption, { parse_mode: 'Markdown', reply_markup: EncV2Keyboard });
         }
     }
 }
@@ -1573,7 +1598,7 @@ ctx.reply(String(e))
 
 })
 
-bot.command("cekfunc", async (ctx) => {
+bot.command("cekcode", async (ctx) => {
 try {
 
 if (!ctx.message.reply_to_message)
@@ -2500,7 +2525,8 @@ Lalu ketik:
 📄 File : <code>${fileName}</code>
 `,
                 {
-                    parse_mode: "HTML"
+                    parse_mode: "HTML",
+                    reply_markup: the_jack
                 }
             )
 
@@ -2539,7 +2565,8 @@ Analisis File/Code Selesai
                 `\`\`\`js
                 ${esc(result)}\`\`\``,
                 {
-                    parse_mode: "Markdown"
+                    parse_mode: "Markdown",
+                    reply_markup: the_jack
                 }
             )
 
@@ -3112,7 +3139,6 @@ watcher.on(
 console.log(
     `[ AUTO BACKUP SYSTEM ACTIVE ]`
 );
-
 bot.launch().then(() => console.log('✅ Bot obfuscator berjalan'));
 setTimeout(
     async () => {
