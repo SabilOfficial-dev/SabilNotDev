@@ -927,7 +927,7 @@ try {
         resolve =>
         setTimeout(
             resolve,
-            2000
+            1000
         )
     )
 
@@ -1170,37 +1170,37 @@ async function EncV2(ctx, messageId = null) {
 // ==================== CALLBACK ====================
 bot.action('open_menu', async (ctx) => {
     const messageId = ctx.callbackQuery.message.message_id;
+    await typing(ctx)
     await showMenu1(ctx, messageId);
     await ctx.answerCbQuery();
-    await typing(ctx)
 });
 
 bot.action('main_menu', async (ctx) => {
     const messageId = ctx.callbackQuery.message.message_id;
+    await typing(ctx)
     await showMenu1(ctx, messageId);
     await ctx.answerCbQuery();
-    await typing(ctx)
 });
 
 bot.action('enc_menu_v1', async (ctx) => {
     const messageId = ctx.callbackQuery.message.message_id;
+    await typing(ctx)
     await EncV1(ctx, messageId);
     await ctx.answerCbQuery();
-    await typing(ctx)
 });
 
 bot.action('enc_menu_v2', async (ctx) => {
     const messageId = ctx.callbackQuery.message.message_id;
+    await typing(ctx)
     await EncV2(ctx, messageId);
     await ctx.answerCbQuery();
-    await typing(ctx)
 });
 
 bot.action('tools_menu', async (ctx) => {
     const messageId = ctx.callbackQuery.message.message_id;
+    await typing(ctx)
     await showMenu2(ctx, messageId);
     await ctx.answerCbQuery();
-    await typing(ctx)
 });
 
 bot.action(
@@ -1229,8 +1229,8 @@ async (ctx) => {
 
     }
 
-    await ctx.answerCbQuery()
     await typing(ctx)
+    await ctx.answerCbQuery()
     await ctx.editMessageText(
 
 `
@@ -1286,8 +1286,8 @@ bot.action(
 
         }
 
+        await typing(ctx)
         await ctx.answerCbQuery()
-
         await ctx.editMessageText(
 `
 <blockquote><b>Hai Owner Ku 👋</b></blockquote>
