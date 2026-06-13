@@ -976,7 +976,7 @@ if (
     await ctx.reply(
 
 `
-</blockquote><b>Hai Owner Ku 👋</b><blockquote>
+<blockquote><b>Hai Owner Ku 👋</b></blockquote>
 <blockquote>Silahkan klik button bawah
 untuk menampilkan menu owner.</blockquote>
 `,
@@ -1238,7 +1238,7 @@ async (ctx) => {
     await ctx.editMessageText(
 
 `
-<blockquote<b>👑 Owner Menu</b></blockquote>
+<blockquote><b>👑 Owner Menu</b></blockquote>
 <blockquote><b>/broadcast
 Forward To User</b></blockquote>
 <blockquote><b>/setlinkupdate
@@ -1247,11 +1247,74 @@ Setting Link Auto Update</b></blockquote>
 Cek Update From Link Raw.Github</b></blockquote>
 `,
             {
-                parse_mode:
-                "HTML"
-            }
-        )}
+                parse_mode: "HTML",
+                reply_markup: {
+                   inline_keyboard: [
+                      [ 
+                       { 
+                         text: "⌫ Back", 
+                         callback_data: "owner_back", 
+                         style: "primary" 
+                        }
+                       ]
+                     ]
+                   }
+                  }
+                )
+}
 
+)
+
+bot.action(
+    "owner_back",
+    async (ctx) => {
+
+        const userId =
+            Number(
+                ctx.from.id
+            )
+
+        if (
+            userId !==
+            Number(
+                config.OWNER_ID
+            )
+        ) {
+
+            return ctx.answerCbQuery(
+                "❌ Khusus Owner",
+                {
+                    show_alert: true
+                }
+            )
+
+        }
+
+        await ctx.answerCbQuery()
+
+        await ctx.editMessageText(
+`
+<blockquote><b>Hai Owner Ku 👋</b></blockquote>
+<blockquote>Silahkan klik button bawah
+untuk menampilkan menu owner.</blockquote>
+`,
+            {
+                parse_mode: "HTML",
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            {
+                                text: "👑 Open Menu Owner",
+                                callback_data: "owner_menu",
+                                style: "danger"
+                            }
+                        ]
+                    ]
+                }
+            }
+        )
+
+    }
 )
 // ==================== RANDOM ====================
 
