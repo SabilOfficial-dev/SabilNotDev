@@ -886,7 +886,6 @@ async function processObfuscate(
 bot.start(async (ctx) => {
     const userId = String(ctx.from.id);
 
-    // Simpan user baru otomatis
     if (!isUserHasAccess(userId)) {
         setUserAccess(userId, true);
 
@@ -895,20 +894,46 @@ bot.start(async (ctx) => {
         );
     }
 
-    // Reaction ke pesan /start
     try {
+
+        await ctx.telegram.sendChatAction(
+            ctx.chat.id,
+            "typing"
+        );
+
+        await new Promise(resolve =>
+            setTimeout(resolve, 2000)
+        );
+
+    } catch (err) {
+
+        console.log(
+            "Typing Error:",
+            err.message
+        );
+
+    }
+
+    try {
+
         await ctx.telegram.setMessageReaction(
             ctx.chat.id,
             ctx.message.message_id,
             [
                 {
-                    type: 'emoji',
-                    emoji: '🎉'
+                    type: "emoji",
+                    emoji: "👻"
                 }
             ]
         );
+
     } catch (err) {
-        console.log('Gagal memberi reaction:', err.message);
+
+        console.log(
+            "Reaction Error:",
+            err.message
+        );
+
     }
 
     return showMenu1(ctx);
