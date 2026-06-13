@@ -453,11 +453,7 @@ bot.telegram.setMyCommands([
     {
         command: 'chatowner',
         description: 'Memberi pesan ke owner'
-    },
-    {
-        command: 'broadcast',
-        description: 'khusus owner'
-    }   
+    }
 ])
 .then(() => {
     console.log(chalk.cyan('Success register cmd'));
