@@ -713,11 +713,11 @@ const EncV2Keyboard = {
 // wik wok the tolk
 async function sendEncryptProgress(ctx, waitMsg, modeName) {
     const steps = [
-        { percent: 20, text: `⚙️ Mengunduh file (mode: ${modeName})`, delay: 600 },
-        { percent: 40, text: `⚙️ PROSES ENCRYPT (${modeName})`, delay: 800 },
-        { percent: 70, text: `⚙️ Encrypting dengan algoritma ${modeName}...`, delay: 5000 },
-        { percent: 80, text: `⚙️ Penyelesaian Encrypt... Cukup Lama`, delay: 4000 },
-        { percent: 100, text: `✅ File berhasil diencrypt! (${modeName})`, delay: 500 }
+        { percent: 20, text: `  ⚙️ Mengunduh file (mode: ${modeName})`, delay: 600 },
+        { percent: 40, text: `  ⚙️ PROSES ENCRYPT (${modeName})`, delay: 800 },
+        { percent: 70, text: `  ⚙️ Encrypting dengan algoritma ${modeName}...`, delay: 5000 },
+        { percent: 80, text: `  ⚙️ Penyelesaian Encrypt... Cukup Lama`, delay: 4000 },
+        { percent: 100, text: `  ✅ File berhasil diencrypt! (${modeName})`, delay: 500 }
     ];
     for (const step of steps) {
         const barLength = 10;
@@ -918,21 +918,21 @@ bot.start(async (ctx) => {
 async function showMenu1(ctx, messageId = null) {
     const bottime = getBotRuntime();
     const caption = `\`\`\`js
-𝗪𝗲𝗹𝗰𝗼𝗺𝗲 ${ctx.from.first_name}
+( 👋 ) 𝗪𝗲𝗹𝗰𝗼𝗺𝗲 ${ctx.from.first_name}
 
-𝗜𝗻𝗳𝗼𝗿𝗺𝗮𝘁𝗶𝗼𝗻 :
+( 🔔 ) 𝗜𝗻𝗳𝗼𝗿𝗺𝗮𝘁𝗶𝗼𝗻 :
 ♱ Developer : @SabilOfficial
 ♱ Version : 1 Gen 2
 ♱ Language : JavaScipt / Js
+♱ Type : Auto Update
 
-⚙️ 𝗦𝘆𝘀𝘁𝗲𝗺 :
+( ⚙️ ) 𝗦𝘆𝘀𝘁𝗲𝗺 :
 ♱ System : Free Access
 ♱ Usename : ${ctx.from.username}
 ♱ Id : ${ctx.from.id}
 ♱ Runtime : ${bottime}
-♱ Featur : Encrypt For File,Tools,Dll
 
-🔥 𝗦𝘆𝘀𝘁𝗲𝗺 𝗦𝗰𝘂𝗿𝗶𝘁𝘆 :
+( 🔥 ) 𝗦𝘆𝘀𝘁𝗲𝗺 𝗦𝗰𝘂𝗿𝗶𝘁𝘆 :
 ♱ 𝖠𝗇𝗍𝗂 𝖤𝗋𝗋𝗈𝗋
 ♱ 𝖤𝗇𝖼 𝖧𝖺𝗋𝖽 𝟣𝟢𝟢%
 ♱ 𝖠𝗇𝗍𝗂 𝖡𝗒𝗉𝖺𝗌𝗌 𝖲𝖼𝗋𝗂𝗉𝗍/𝗐𝖾𝖻
