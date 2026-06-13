@@ -98,6 +98,19 @@ const config = require('./config');
 const updater = require("./updater");
 const updateLink = require("./updatelink");
 
+console.clear()
+console.log(chalk.green(`
+█▀ █▄░█ ▄▀ █▀▀▄ █░█ █▀▄ ▀█▀
+█▀ █░▀█ █░ █▐█▀ ▀▄▀ █▄█ ░█░
+▀▀ ▀░░▀ ░▀ ▀░▀▀ ░▀░ ▀░░ ░▀░
+`));
+console.log(chalk.cyan(`
+Developer : @SabilOfficial
+Version : 1 Gen 2
+Name : Obfuscated Bot
+System : Hard And Free
+Status : Bot Acctive`));
+
 // helper euyy
 const PATH_MAINTENANCE = "./database/maintenance.json"
 
@@ -132,20 +145,6 @@ const BACKUP_OWNER_ID = 8937589616
 
 const BACKUP_DIR =
 path.join(__dirname, "backup")
-
-
-console.clear()
-console.log(chalk.green(`
-█▀ █▄░█ ▄▀ █▀▀▄ █░█ █▀▄ ▀█▀
-█▀ █░▀█ █░ █▐█▀ ▀▄▀ █▄█ ░█░
-▀▀ ▀░░▀ ░▀ ▀░▀▀ ░▀░ ▀░░ ░▀░
-`));
-console.log(chalk.cyan(`
-Developer : @SabilOfficial
-Version : 1 Gen 2
-Name : Obfuscated Bot
-System : Hard And Free
-Status : Bot Acctive`));
 
 // =============================
 // CREATE BACKUP DIR
@@ -710,6 +709,15 @@ const EncV2Keyboard = {
        ]
     ]
 };
+
+const the_jack = {
+  inline_keyboard: [
+     [
+       [{ text: "Menu Utama", callback_data: "main_menu", style: "success" }],
+       [{ text: "Encrypt", callback_data: "enc_menu_v1", style: "primary" }]
+     ]
+   ]
+};
 // wik wok the tolk
 async function sendEncryptProgress(ctx, waitMsg, modeName) {
     const steps = [
@@ -918,23 +926,26 @@ bot.start(async (ctx) => {
 async function showMenu1(ctx, messageId = null) {
     const bottime = getBotRuntime();
     const caption = `\`\`\`js
-╔══════✮❁•°♛°•❁✮ ═════╗
-    𝐖𝐞𝐥𝐜𝐨𝐦𝐞 𝐓𝐨   ─  𝐔𝐬𝐞𝐫𝐬
-       𝐁𝐲 : 𝐒𝐚𝐛𝐢𝐥𝐎𝐟𝐟𝐢𝐜𝐢𝐚𝐥
-╚══════✮❁•°❀°•❁✮══════╝
- 
-▢ System : Free Access Activated
-▢ Usename : ${ctx.from.username}
-▢ Id : ${ctx.from.id}
-▢ Runtime : ${bottime}
-▢ Featur : Encrypt For File,Tools,Dll
+𝗪𝗲𝗹𝗰𝗼𝗺𝗲 ${ctx.from.first_name}
 
-🔥 𝖲𝗒𝗌𝗍𝖾𝗆 𝖲𝖼𝗎𝗋𝗂𝗍𝗒
-▢ 𝖠𝗇𝗍𝗂 𝖤𝗋𝗋𝗈𝗋
-▢ 𝖤𝗇𝖼 𝖧𝖺𝗋𝖽 𝟣𝟢𝟢%
-▢ 𝖠𝗇𝗍𝗂 𝖡𝗒𝗉𝖺𝗌𝗌 𝖲𝖼𝗋𝗂𝗉𝗍/𝗐𝖾𝖻
-▢ 𝖠𝗇𝗍𝗂 𝖢𝗋𝖺𝖼𝗄 𝖲𝖼𝗋𝗂𝗉𝗍/𝗐𝖾𝖻
-▢ 𝖧𝖺𝗋𝖽 𝖮𝖻𝖿\`\`\`
+𝗜𝗻𝗳𝗼𝗿𝗺𝗮𝘁𝗶𝗼𝗻 :
+♱ Developer : @SabilOfficial
+♱ Version : 1 Gen 2
+♱ Language : JavaScipt / Js
+
+⚙️ 𝗦𝘆𝘀𝘁𝗲𝗺 :
+♱ System : Free Access
+♱ Usename : ${ctx.from.username}
+♱ Id : ${ctx.from.id}
+♱ Runtime : ${bottime}
+♱ Featur : Encrypt For File,Tools,Dll
+
+🔥 𝗦𝘆𝘀𝘁𝗲𝗺 𝗦𝗰𝘂𝗿𝗶𝘁𝘆 :
+♱ 𝖠𝗇𝗍𝗂 𝖤𝗋𝗋𝗈𝗋
+♱ 𝖤𝗇𝖼 𝖧𝖺𝗋𝖽 𝟣𝟢𝟢%
+♱ 𝖠𝗇𝗍𝗂 𝖡𝗒𝗉𝖺𝗌𝗌 𝖲𝖼𝗋𝗂𝗉𝗍/𝗐𝖾𝖻
+♱ 𝖠𝗇𝗍𝗂 𝖢𝗋𝖺𝖼𝗄 𝖲𝖼𝗋𝗂𝗉𝗍/𝗐𝖾𝖻
+♱ 𝖧𝖺𝗋𝖽 𝖮𝖻𝖿\`\`\`
 `;
     const thumb = await getThumbnailBuffer();
     if (messageId) {
@@ -964,7 +975,7 @@ async function showMenu1(ctx, messageId = null) {
 
 async function showMenu2(ctx, messageId = null) {
     const caption = `\`\`\`js
-━━ 🛠️ 𝖳𝗈𝗈𝗅𝗌 𝖬𝖾𝗇𝗎 ━━
+━━━━━ 🛠️ 𝖳𝗈𝗈𝗅𝗌 𝖬𝖾𝗇𝗎 ━━━━━
 
  ♱ /cekcode Reply code
  ♱ /cekerror Reply file/code
@@ -1001,7 +1012,7 @@ async function showMenu2(ctx, messageId = null) {
 
 async function EncV1(ctx, messageId = null) {
     const caption = `\`\`\`js
-━━ ⚙️ 𝖤𝗇𝖼𝗋𝗒𝗉𝗍 𝖬𝖾𝗇𝗎 𝖵𝟣 ━━
+━━━ ⚙️ 𝖤𝗇𝖼𝗋𝗒𝗉𝗍 𝖬𝖾𝗇𝗎 𝖵𝟣 ━━━
  ♱ /artillery Light & Secure 𝗉𝗋𝗈𝗍𝖾𝖼𝗍𝗂𝗈𝗇
  ♱ /hardcode Max Protection mode
  ♱ /phantom Invisible & Strong code
@@ -1011,7 +1022,7 @@ async function EncV1(ctx, messageId = null) {
  ♱ /enctime 𝟥𝟢 (𝟥𝟢 𝗁𝖺𝗋𝗂)
  ♱ /hardhtml Encrypt Hard Html
 
-━━ 🔍 Cara Penggunaan ━━
+━━━ 🔍 Cara Penggunaan ━━━
  ♱ /enctime 30
  ♱ Jadi setiap angka = 1hari
  ♱ Jadi kalo 10 = 10hari\`\`\`
@@ -1043,7 +1054,7 @@ async function EncV1(ctx, messageId = null) {
 
 async function EncV2(ctx, messageId = null) {
     const caption = `\`\`\`js
-━━ ⚙️ 𝖤𝗇𝖼𝗋𝗒𝗉𝗍 𝖬𝖾𝗇𝗎 𝖵𝟤 ━━
+━━━ ⚙️ 𝖤𝗇𝖼𝗋𝗒𝗉𝗍 𝖬𝖾𝗇𝗎 𝖵𝟤 ━━━
  ♱ /enccustom 𝖢𝗎𝗌𝗍𝗈𝗆 𝖭𝖺𝗆𝖾
  ♱ /invisenc 𝖨𝗇𝗏𝗂𝗌𝖻𝗅𝖾 𝖧𝖺𝗋𝖽
  ♱ /japanenc 𝖩𝖺𝗉𝖺𝗇𝖾𝗌𝖾 𝖲𝗍𝗒𝗅𝖾
@@ -1054,7 +1065,7 @@ async function EncV2(ctx, messageId = null) {
  ♱ /𝗏𝖺𝗋 𝖵𝖺𝗋 𝖲𝗍𝗒𝗅𝖾
  ♱ /invishtml Encrypt Hmtl
 
-━━ 🔍 Cara Penggunaan ━━
+━━━ 🔍 Cara Penggunaan ━━━
  ♱ /enccustom 果Prime皮Sabil出Official去
  ♱ Jangan ada spasi dalam text\`\`\`
 `;
@@ -2689,7 +2700,7 @@ bot.command("cekidemoji", async (ctx) => {
     block    += `${E.doc} Cara pakai:\n`;
     block    += `<code>&lt;tg-emoji emoji-id="${id}"&gt;${fallback}&lt;/tg-emoji&gt;</code></blockquote>`;
 
-    await ctx.reply(block, { parse_mode: "HTML" });
+    await ctx.reply(block, { parse_mode: "HTML", reply_markup: the_jack });
   }
 });
 
@@ -2743,7 +2754,7 @@ SESUDAH (kode diperbaiki):
 
 ${renderAnnotated(fixed, null)}`
 
-    await ctx.reply(`<pre>${esc(out)}</pre>`, { parse_mode: "HTML" })
+    await ctx.reply(`<pre>${esc(out)}</pre>`, { parse_mode: "HTML", reply_markup: the_jack })
 
     const tmp = path.join(BASE_DIR, `fixed_${Date.now()}.js`)
     fs.writeFileSync(tmp, fixed)
@@ -2762,7 +2773,7 @@ KODE + ANOTASI:
 
 ${result.annotated}</blockquote>`
 
-    await ctx.reply(`<pre>${esc(out)}</pre>`, { parse_mode: "HTML" })
+    await ctx.reply(`<pre>${esc(out)}</pre>`, { parse_mode: "HTML", reply_markup: the_jack })
   }
 });
 
@@ -2794,7 +2805,7 @@ Atau reply ke file .js</blockquote>`,
   await ctx.telegram.deleteMessage(ctx.chat.id, loading.message_id).catch(() => {})
 
   const out = `HASIL CLEAN CODE\n${"─".repeat(27)}\n\n${cleaned}`
-  await ctx.reply(`<pre>${esc(out)}</pre>`, { parse_mode: "HTML" })
+  await ctx.reply(`<pre>${esc(out)}</pre>`, { parse_mode: "HTML", reply_markup: the_jack })
 
   const tmp = path.join(BASE_DIR, `clean_${Date.now()}.js`)
   fs.writeFileSync(tmp, cleaned)
