@@ -422,7 +422,7 @@ function getBotRuntime() {
   return formatRuntime(now - startTime);
 }
 
-async function typing(ctx, ms = 1000) {
+async function typing(ctx, ms = 100) {
 
     try {
 
