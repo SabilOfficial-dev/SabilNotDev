@@ -1423,7 +1423,7 @@ function customStyle(code,name){
   const varName=randomName(names)
 
   return `(function(){
-${chaosVars(1200,names)}
+${chaosVars(1200,name)}
 function ${name}(){
 const ${varName}="${b64}";
 return Buffer.from(${varName},"base64").toString();
