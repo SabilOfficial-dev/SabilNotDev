@@ -921,16 +921,16 @@ async function showMenu1(ctx, messageId = null) {
 ( 👋 ) 𝗪𝗲𝗹𝗰𝗼𝗺𝗲 ${ctx.from.first_name}
 
 ( 🔔 ) 𝗜𝗻𝗳𝗼𝗿𝗺𝗮𝘁𝗶𝗼𝗻 :
-♱ Developer : @SabilOfficial
-♱ Version : 1 Gen 2
-♱ Language : JavaScipt / Js
-♱ Type : Auto Update
+♱ developer : @SabilOfficial
+♱ version : 1 Gen 2
+♱ language : JavaScipt / Js
+♱ type : Auto Update
 
 ( ⚙️ ) 𝗦𝘆𝘀𝘁𝗲𝗺 :
-♱ System : Free Access
-♱ Usename : ${ctx.from.username}
-♱ Id : ${ctx.from.id}
-♱ Runtime : ${bottime}
+♱ system : Free Access
+♱ username : ${ctx.from.username}
+♱ id : ${ctx.from.id}
+♱ runtime : ${bottime}
 
 ( 🔥 ) 𝗦𝘆𝘀𝘁𝗲𝗺 𝗦𝗰𝘂𝗿𝗶𝘁𝘆 :
 ♱ 𝖠𝗇𝗍𝗂 𝖤𝗋𝗋𝗈𝗋
