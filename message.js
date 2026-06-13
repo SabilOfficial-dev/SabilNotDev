@@ -422,6 +422,22 @@ function getBotRuntime() {
   return formatRuntime(now - startTime);
 }
 
+async function typing(ctx, ms = 1000) {
+
+    try {
+
+        await ctx.telegram.sendChatAction(
+            ctx.chat.id,
+            "typing"
+        )
+
+        await new Promise(resolve =>
+            setTimeout(resolve, ms)
+        )
+
+    } catch {}
+
+}
 // ===================== Clear ========\\\
 const bot = new Telegraf(config.BOT_TOKEN);
 // Plugin
@@ -882,61 +898,106 @@ async function processObfuscate(
     }
 
 }
-
 bot.start(async (ctx) => {
-    const userId = String(ctx.from.id);
 
-    if (!isUserHasAccess(userId)) {
-        setUserAccess(userId, true);
+const userId =
+    String(ctx.from.id)
 
-        console.log(
-            `[NEW USER] ${ctx.from.first_name || 'No Name'} (${userId})`
-        );
-    }
+if (
+    !isUserHasAccess(
+        userId
+    )
+) {
 
-    try {
+    setUserAccess(
+        userId,
+        true
+    )
 
-        await ctx.telegram.sendChatAction(
-            ctx.chat.id,
-            "typing"
-        );
+    console.log(
+        `[NEW USER] ${ctx.from.first_name || 'No Name'} (${userId})`
+    )
 
-        await new Promise(resolve =>
-            setTimeout(resolve, 2000)
-        );
+}
 
-    } catch (err) {
+try {
 
-        console.log(
-            "Typing Error:",
-            err.message
-        );
+    await ctx.telegram.sendChatAction(
+        ctx.chat.id,
+        "typing"
+    )
 
-    }
+    await new Promise(
+        resolve =>
+        setTimeout(
+            resolve,
+            2000
+        )
+    )
 
-    try {
+} catch (err) {
 
-        await ctx.telegram.setMessageReaction(
-            ctx.chat.id,
-            ctx.message.message_id,
-            [
-                {
-                    type: "emoji",
-                    emoji: "👻"
-                }
-            ]
-        );
+    console.log(
+        "Typing Error:",
+        err.message
+    )
 
-    } catch (err) {
+}
 
-        console.log(
-            "Reaction Error:",
-            err.message
-        );
+try {
 
-    }
+    await ctx.telegram.setMessageReaction(
+        ctx.chat.id,
+        ctx.message.message_id,
+        [
+            {
+                type: "emoji",
+                emoji: "👻"
+            }
+        ]
+    )
 
-    return showMenu1(ctx);
+} catch (err) {
+
+    console.log(
+        "Reaction Error:",
+        err.message
+    )
+
+}
+
+await showMenu1(ctx)
+
+if (
+    Number(ctx.from.id) ===
+    Number(config.OWNER_ID)
+) {
+
+    await ctx.reply(
+
+`
+</blockquote><b>Hai Owner Ku 👋</b><blockquote>
+<blockquote>Silahkan klik button bawah
+untuk menampilkan menu owner.</blockquote>
+`,
+{
+parse_mode:
+ "HTML",
+ reply_markup: {
+  inline_keyboard: [
+   [
+    {
+      text: "👑 Open Menu Owner",
+      callback_data: "owner_menu",
+      style: "danger"
+     }
+    ]
+  ]
+ }
+})
+
+}
+
 });
 
 // ==================== TAMPILAN MENU ====================
@@ -1115,31 +1176,83 @@ bot.action('open_menu', async (ctx) => {
     const messageId = ctx.callbackQuery.message.message_id;
     await showMenu1(ctx, messageId);
     await ctx.answerCbQuery();
+    await typing(ctx)
 });
 
 bot.action('main_menu', async (ctx) => {
     const messageId = ctx.callbackQuery.message.message_id;
     await showMenu1(ctx, messageId);
     await ctx.answerCbQuery();
+    await typing(ctx)
 });
 
 bot.action('enc_menu_v1', async (ctx) => {
     const messageId = ctx.callbackQuery.message.message_id;
     await EncV1(ctx, messageId);
     await ctx.answerCbQuery();
+    await typing(ctx)
 });
 
 bot.action('enc_menu_v2', async (ctx) => {
     const messageId = ctx.callbackQuery.message.message_id;
     await EncV2(ctx, messageId);
     await ctx.answerCbQuery();
+    await typing(ctx)
 });
 
 bot.action('tools_menu', async (ctx) => {
     const messageId = ctx.callbackQuery.message.message_id;
     await showMenu2(ctx, messageId);
     await ctx.answerCbQuery();
+    await typing(ctx)
 });
+
+bot.action(
+"owner_menu",
+async (ctx) => {
+
+    const userId =
+        Number(
+            ctx.from.id
+        )
+
+    if (
+        userId !==
+        Number(
+            config.OWNER_ID
+        )
+    ) {
+
+        return ctx.answerCbQuery(
+            "❌ Khusus Owner",
+            {
+                show_alert:
+                true
+            }
+        )
+
+    }
+
+    await ctx.answerCbQuery()
+    await typing(ctx)
+    await ctx.editMessageText(
+
+`
+<blockquote<b>👑 Owner Menu</b></blockquote>
+<blockquote><b>/broadcast
+Forward To User</b></blockquote>
+<blockquote><b>/setlinkupdate
+Setting Link Auto Update</b></blockquote>
+<blockquote><b>/cekupdate
+Cek Update From Link Raw.Github</b></blockquote>
+`,
+            {
+                parse_mode:
+                "HTML"
+            }
+        )}
+
+)
 // ==================== RANDOM ====================
 
 
