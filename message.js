@@ -141,7 +141,7 @@ function isMaintenance() {
 }
 
 // Backup Files Jirr
-const BACKUP_OWNER_ID = 8937589616
+const BACKUP_OWNER_ID = config.OWNER_ID
 
 const BACKUP_DIR =
 path.join(__dirname, "backup")
@@ -576,7 +576,7 @@ Tunggu hingga maintenance selesai.
 //// simpan mapping pesan owner -> user
 const CHAT_SESSION = {}
 const REPLY_MAP = {}
-
+const WAITING_UPDATE_LINK = {}
 
 // ==================== DATABASE AKSES ====================
 const ACCESS_FILE = './akses.json';
@@ -710,14 +710,6 @@ const EncV2Keyboard = {
     ]
 };
 
-const the_jack = {
-  inline_keyboard: [
-     [
-       [{ text: "Menu Utama", callback_data: "main_menu", style: "success" }],
-       [{ text: "Encrypt", callback_data: "enc_menu_v1", style: "primary" }]
-     ]
-   ]
-};
 // wik wok the tolk
 async function sendEncryptProgress(ctx, waitMsg, modeName) {
     const steps = [
@@ -2537,7 +2529,6 @@ Lalu ketik:
 `,
                 {
                     parse_mode: "HTML",
-                    reply_markup: the_jack
                 }
             )
 
@@ -2577,7 +2568,6 @@ Analisis File/Code Selesai
                 ${esc(result)}\`\`\``,
                 {
                     parse_mode: "Markdown",
-                    reply_markup: the_jack
                 }
             )
 
@@ -2700,7 +2690,7 @@ bot.command("cekidemoji", async (ctx) => {
     block    += `${E.doc} Cara pakai:\n`;
     block    += `<code>&lt;tg-emoji emoji-id="${id}"&gt;${fallback}&lt;/tg-emoji&gt;</code></blockquote>`;
 
-    await ctx.reply(block, { parse_mode: "HTML", reply_markup: the_jack });
+    await ctx.reply(block, { parse_mode: "HTML" });
   }
 });
 
@@ -2754,7 +2744,7 @@ SESUDAH (kode diperbaiki):
 
 ${renderAnnotated(fixed, null)}`
 
-    await ctx.reply(`<pre>${esc(out)}</pre>`, { parse_mode: "HTML", reply_markup: the_jack })
+    await ctx.reply(`<pre>${esc(out)}</pre>`, { parse_mode: "HTML" })
 
     const tmp = path.join(BASE_DIR, `fixed_${Date.now()}.js`)
     fs.writeFileSync(tmp, fixed)
@@ -2773,7 +2763,7 @@ KODE + ANOTASI:
 
 ${result.annotated}</blockquote>`
 
-    await ctx.reply(`<pre>${esc(out)}</pre>`, { parse_mode: "HTML", reply_markup: the_jack })
+    await ctx.reply(`<pre>${esc(out)}</pre>`, { parse_mode: "HTML" })
   }
 });
 
@@ -2805,7 +2795,7 @@ Atau reply ke file .js</blockquote>`,
   await ctx.telegram.deleteMessage(ctx.chat.id, loading.message_id).catch(() => {})
 
   const out = `HASIL CLEAN CODE\n${"─".repeat(27)}\n\n${cleaned}`
-  await ctx.reply(`<pre>${esc(out)}</pre>`, { parse_mode: "HTML", reply_markup: the_jack })
+  await ctx.reply(`<pre>${esc(out)}</pre>`, { parse_mode: "HTML" })
 
   const tmp = path.join(BASE_DIR, `clean_${Date.now()}.js`)
   fs.writeFileSync(tmp, cleaned)
