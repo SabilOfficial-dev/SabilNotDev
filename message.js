@@ -2308,7 +2308,7 @@ npm install acorn\`\`\``,
     if (errorResult?.success) {
       // Tidak ada error
       const successMsg = `
-✅ TIDAK ADA ERROR
+☑︎ TIDAK ADA ERROR
 ───────────────────────────
 📌 Language:
 \`\`\`
@@ -2316,10 +2316,10 @@ ${langDisplay}\`\`\`
 
 ✨ Hasil Analisis:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
-\`\`\`ja
-☑︎ Tidak ditemukan error pada kode
-☑︎ Sintaks valid
-☑︎ Struktur kode aman\`\`\`
+\`\`\`js
+✅︎ Tidak ditemukan error pada kode
+✅︎ Sintaks valid
+✅︎ Struktur kode aman\`\`\`
 
 ───────────────────────────
 ☑︎ Kode AMAN! 🚀`;
@@ -2355,12 +2355,10 @@ ${errorLine ? `Baris ke-${errorLine}${errorCol ? `, Kolom ${errorCol}` : ""}` : 
 \`\`\`js
 ${fixSuggest || "Periksa sintaks dan logika kode"}\`\`\`
 
-───────────────────────────
 📌 Cuplikan Kode:
 \`\`\`js
 ${annotatedClean}\`\`\`
-
-───────────────────────────`;
+`;
 
       // Jika pesan terlalu panjang, kirim sebagai file
       if (errorMsg2.length > 4000) {
