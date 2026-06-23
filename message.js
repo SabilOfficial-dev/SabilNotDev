@@ -4,6 +4,7 @@ const archiver  = require("archiver")
 const chokidar  = require("chokidar")
 const crypto = require('crypto');
 const { execSync } = require("child_process")
+const { exec } = require("child_process")
 
 function escapeHtml(text = "") {
     return text
@@ -73,8 +74,8 @@ const modules = [
     "vm",
     "http",
     "https",
-    "chalk@4"
-
+    "chalk@4",
+    "cheerio"
 ]
 
 // =============================
@@ -91,25 +92,24 @@ const http = require("http")
 const vm = require('vm')
 const acorn = require('acorn')
 const path = require('path')
+const chalk = require('chalk')
 const { Bot, InputFile } = require('grammy')
+const cheerio = require('cheerio')
 const moment = require("moment-timezone")
-const chalk = require('chalk');
 const config = require('./config');
 const updater = require("./updater");
 const updateLink = require("./updatelink");
 
 console.clear()
 console.log(chalk.green(`
-█▀ █▄░█ ▄▀ █▀▀▄ █░█ █▀▄ ▀█▀
-█▀ █░▀█ █░ █▐█▀ ▀▄▀ █▄█ ░█░
-▀▀ ▀░░▀ ░▀ ▀░▀▀ ░▀░ ▀░░ ░▀░
-`));
-console.log(chalk.cyan(`
+█▀ ▀█▀ ▄▀█ █▀█ ▀█▀
+▄█ ░█░ █▀█ █▀▄ ░█░
 Developer : @SabilOfficial
 Version : 1 Gen 2
 Name : Obfuscated Bot
 System : Hard And Free
 Status : Bot Acctive`));
+
 
 // helper euyy
 const PATH_MAINTENANCE = "./database/maintenance.json"
@@ -438,6 +438,132 @@ async function typing(ctx, ms = 100) {
     } catch {}
 
 }
+
+// ==================== FUNGSI DOWNLOAD ASSET ====================
+async function downloadAsset(url, outputPath) {
+    try {
+        const response = await axios.get(url, { responseType: 'stream', timeout: 10000 });
+        const writer = fs.createWriteStream(outputPath);
+        response.data.pipe(writer);
+        return new Promise((resolve, reject) => {
+            writer.on('finish', resolve);
+            writer.on('error', reject);
+        });
+    } catch (err) {
+        console.error(`Gagal download asset: ${url}`, err.message);
+    }
+}
+
+// ==================== FUNGSI EKSTRAK DAN ZIP WEBSITE ====================
+async function downloadWebsite(url, outputDir, zipPath) {
+    try {
+        await fs.ensureDir(outputDir);
+        
+        const response = await axios.get(url, { 
+            responseType: 'text', 
+            timeout: 30000,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+        });
+        
+        const html = response.data;
+        const $ = cheerio.load(html);
+        
+        await fs.writeFile(path.join(outputDir, 'index.html'), html);
+        
+        const assets = [];
+        
+        $('link[rel="stylesheet"]').each((i, el) => {
+            let href = $(el).attr('href');
+            if (href && !href.startsWith('data:') && !href.startsWith('http')) {
+                href = new URL(href, url).href;
+                assets.push({ url: href, type: 'css' });
+            } else if (href && href.startsWith('http')) {
+                assets.push({ url: href, type: 'css' });
+            }
+        });
+        
+        $('script[src]').each((i, el) => {
+            let src = $(el).attr('src');
+            if (src && !src.startsWith('data:') && !src.startsWith('http')) {
+                src = new URL(src, url).href;
+                assets.push({ url: src, type: 'js' });
+            } else if (src && src.startsWith('http')) {
+                assets.push({ url: src, type: 'js' });
+            }
+        });
+        
+        $('img').each((i, el) => {
+            let src = $(el).attr('src');
+            if (src && !src.startsWith('data:') && !src.startsWith('http')) {
+                src = new URL(src, url).href;
+                assets.push({ url: src, type: 'img' });
+            } else if (src && src.startsWith('http')) {
+                assets.push({ url: src, type: 'img' });
+            }
+        });
+        
+        const assetDir = path.join(outputDir, 'assets');
+        await fs.ensureDir(assetDir);
+        
+        for (let i = 0; i < assets.length; i++) {
+            const asset = assets[i];
+            const ext = path.extname(asset.url).split('?')[0] || '.bin';
+            const filename = `${asset.type}_${i}${ext}`;
+            const assetPath = path.join(assetDir, filename);
+            await downloadAsset(asset.url, assetPath);
+        }
+        
+        const output = fs.createWriteStream(zipPath);
+        const archive = archiver('zip', { zlib: { level: 9 } });
+        
+        return new Promise((resolve, reject) => {
+            output.on('close', () => resolve(zipPath));
+            archive.on('error', reject);
+            archive.pipe(output);
+            archive.directory(outputDir, path.basename(outputDir));
+            archive.finalize();
+        });
+        
+    } catch (err) {
+        throw new Error(`Gagal download website: ${err.message}`);
+    }
+}
+
+// ==================== PROSES DOWNLOAD ====================
+async function processDownload(ctx, url) {
+    const waitMsg = await ctx.reply('🌐 Mengunduh website... mohon tunggu.\n\n⏳ Proses ini bisa memakan waktu 10-60 detik tergantung ukuran website.', { parse_mode: 'HTML' });
+    
+    const tempDir = path.join(__dirname, `temp_${Date.now()}`);
+    const zipPath = path.join(__dirname, `website_${Date.now()}.zip`);
+    
+    try {
+        await downloadWebsite(url, tempDir, zipPath);
+        
+        await ctx.telegram.deleteMessage(waitMsg.chat.id, waitMsg.message_id).catch(() => {});
+        
+        const stats = fs.statSync(zipPath);
+        const fileSizeKB = (stats.size / 1024).toFixed(2);
+        
+        await ctx.replyWithDocument(
+            { source: zipPath, filename: `source_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.zip` },
+            { caption: `✅ *Berhasil mengunduh website!*\n\n🌐 URL: ${url}\n📦 Ukuran: ${fileSizeKB} KB\n📁 File ZIP berisi HTML, CSS, JS, dan aset.`, parse_mode: 'Markdown' }
+        );
+        
+        await fs.remove(tempDir).catch(() => {});
+        await fs.remove(zipPath).catch(() => {});
+        
+    } catch (err) {
+        console.error('Download website error:', err);
+        await ctx.telegram.deleteMessage(waitMsg.chat.id, waitMsg.message_id).catch(() => {});
+        await ctx.reply(`❌ *Gagal mengunduh website!*\n\nError: ${err.message}`, { parse_mode: 'Markdown' });
+        
+        await fs.remove(tempDir).catch(() => {});
+        await fs.remove(zipPath).catch(() => {});
+    }
+}
+
 // ===================== Clear ========\\\
 const bot = new Telegraf(config.BOT_TOKEN);
 // Plugin
@@ -585,10 +711,12 @@ Tunggu hingga maintenance selesai.
     )
 })
 
-//// simpan mapping pesan owner -> user
+
 const CHAT_SESSION = {}
 const REPLY_MAP = {}
 const WAITING_UPDATE_LINK = {}
+const waitingForUrl = new Map();
+const sesiMusic = {}
 
 // ==================== DATABASE AKSES ====================
 const ACCESS_FILE = './akses.json';
@@ -628,99 +756,184 @@ async function getThumbnailBuffer() {
         return null;
     } catch (err) { return null; }
 }
+// ==================== KONFIGURASI DISCO ====================
+const COLORS = ['primary', 'success', 'danger'];
+const discoSessions = new Map(); // userId -> { interval, messageId }
 
-// ==================== KEYBOARD ====================
-const openMenuKeyboard = {
-    inline_keyboard: [
-    [
-      { 
-        text: "Menu", 
-        callback_data: "tools_menu", 
-        style: "success"
-       }
-     ],
-     [
-      { 
-        text: "👑 Owner", 
-        url: "https://t.me/sabilofficial",
-        style: "primary"
-       },
-      { 
-        text: "👾 𝖢𝗁𝖺𝗇𝗇𝖾𝗅",
-        url: "t.me/aboutbil",
-        style: "danger"
-      }
-     ]
-   ]
-};
+// ==================== FUNGSI GET STYLE ====================
+function getDiscoStyle() {
+    const index = Math.floor(Date.now() / 4000) % COLORS.length;
+    return COLORS[index];
+}
 
-const OwnKb = {
-    inline_keyboard: [
-        [
-         { 
-          text: "Back", 
-          callback_data: "main_menu",
-          style: "success"
-         },
-         { 
-          text: "Next", 
-          callback_data: "tools_menu",
-          style: "danger"
-         }
-       ]
+// ==================== FUNGSI KEYBOARD ====================
+function getOpenMenuKeyboard() {
+    const style = getDiscoStyle();
+    return {
+        inline_keyboard: [
+            [
+                { 
+                    text: "🧸 𝙼𝙴𝙽𝚄 🧸", 
+                    callback_data: "tools_menu", 
+                    style: style
+                }
+            ],
+            [
+                { 
+                    text: "👑 𝙾𝚆𝙽𝙴𝚁 👑", 
+                    url: "https://t.me/sabilofficial",
+                    style: style
+                },
+                { 
+                    text: "🔔 𝙲𝙷𝙰𝙽𝙽𝙴𝙻 🔔",
+                    url: "t.me/aboutbil",
+                    style: style
+                }
+            ]
+        ]
+    };
+}
+
+function getToolsKeyboard() {
+    const style = getDiscoStyle();
+    return {
+        inline_keyboard: [
+            [
+                { 
+                    text: "⪨ 𝙱𝙰𝙲𝙺", 
+                    callback_data: "main_menu",
+                    style: style
+                },
+                { 
+                    text: "𝙽𝙴𝚇𝚃 ⪩", 
+                    callback_data: "enc_menu_v1",
+                    style: style
+                }
+            ]
+        ]
+    };
+}
+
+function getEncV1Keyboard() {
+    const style = getDiscoStyle();
+    return {
+        inline_keyboard: [
+            [
+                { 
+                    text: "⪨ 𝙱𝙰𝙲𝙺", 
+                    callback_data: "tools_menu",
+                    style: style
+                },
+                { 
+                    text: "𝙽𝙴𝚇𝚃 ⪩", 
+                    callback_data: "enc_menu_v2",
+                    style: style
+                }
+            ]
+        ]
+    };
+}
+
+function getEncV2Keyboard() {
+    const style = getDiscoStyle();
+    return {
+        inline_keyboard: [
+            [
+                { 
+                    text: "⪨ 𝙱𝙰𝙲𝙺", 
+                    callback_data: "enc_menu_v1",
+                    style: style
+                },
+                { 
+                    text: "𝙽𝙴𝚇𝚃 ⪩", 
+                    callback_data: "main_menu",
+                    style: style
+                }
+            ]
+        ]
+    };
+}
+
+function getcrotown() {
+    const style = getDiscoStyle();
+    return {
+  inline_keyboard: [
+   [
+    {
+      text: "👑 Open Menu Owner",
+      callback_data: "owner_menu",
+      style: style
+     }
     ]
-};
+  ]
+ };
+}
 
-const ToolsKeyboard = {
-    inline_keyboard: [
-        [
-         { 
-          text: "Back", 
-          callback_data: "main_menu",
-          style: "primary"
-         },
-         { 
-          text: "Next", 
-          callback_data: "enc_menu_v1",
-          style: "danger"
-         }
-       ]
-    ]
-};
+function getownmenu() {
+     const style = getDiscoStyle();
+     return  {
+         inline_keyboard: [
+                     [ 
+                       { 
+                         text: "⪨ 𝙱𝙰𝙲𝙺", 
+                         callback_data: "owner_back", 
+                         style: style
+                        }
+                       ]
+                     ]
+                   };
+                 }
 
-const EncV1Keyboard = {
-    inline_keyboard: [
-        [
-         { 
-          text: "Back", 
-          callback_data: "tools_menu",
-          style: "success"
-         },
-         { 
-          text: "Next", 
-          callback_data: "enc_menu_v2",
-          style: "primary"
-         }
-       ]
-    ]
-};
-
-const EncV2Keyboard = {
-    inline_keyboard: [
-        [
-         { 
-          text: "Back", 
-          callback_data: "enc_menu_v1",
-          style: "danger"
-         },
-         { 
-          text: "Next", 
-          callback_data: "main_menu",
-          style: "success" 
-         }
-       ]
-    ]
-};
+function getkeyboardown() {
+      const style = getDiscoStyle();
+      return {
+        inline_keyboard: [
+                        [
+                            {
+                                text: "👑 Open Menu Owner",
+                                callback_data: "owner_menu",
+                                style: style
+                            }
+                        ]
+                    ]
+                };
+              }
+// ==================== FUNGSI START DISCO ====================
+function startDisco(ctx, messageId, getKeyboardFunc) {
+    const userId = ctx.from.id;
+    
+    // Hentikan disco sebelumnya jika ada
+    if (discoSessions.has(userId)) {
+        const oldSession = discoSessions.get(userId);
+        clearInterval(oldSession.interval);
+        discoSessions.delete(userId);
+    }
+    
+    // Simpan session
+    const interval = setInterval(async () => {
+        try {
+            const keyboard = getKeyboardFunc();
+            await ctx.telegram.editMessageReplyMarkup(
+                ctx.chat.id,
+                messageId,
+                undefined,
+                keyboard
+            );
+        } catch (err) {
+            // Ignore jika pesan tidak ditemukan atau tidak berubah
+            if (err.message.includes('message is not modified')) return;
+            if (err.message.includes('message to edit not found')) {
+                const session = discoSessions.get(userId);
+                if (session) {
+                    clearInterval(session.interval);
+                    discoSessions.delete(userId);
+                }
+            }
+        }
+    }, 4000); // 2 detik (aman dari rate limit)
+    
+    discoSessions.set(userId, { interval, messageId });
+}
 
 // wik wok the tolk
 async function sendEncryptProgress(ctx, waitMsg, modeName) {
@@ -895,7 +1108,7 @@ async function processObfuscate(
 
 }
 bot.start(async (ctx) => {
-
+const keyboard = getcrotown();
 const userId =
     String(ctx.from.id)
 
@@ -910,9 +1123,9 @@ if (
         true
     )
 
-    console.log(
-        `[NEW USER] ${ctx.from.first_name || 'No Name'} (${userId})`
-    )
+    console.log(chalk.green(
+        `NEW USER ${ctx.from.first_name || 'No Name'} (${userId})`
+    ));
 
 }
 
@@ -927,7 +1140,7 @@ try {
         resolve =>
         setTimeout(
             resolve,
-            1000
+            4000
         )
     )
 
@@ -935,28 +1148,6 @@ try {
 
     console.log(
         "Typing Error:",
-        err.message
-    )
-
-}
-
-try {
-
-    await ctx.telegram.setMessageReaction(
-        ctx.chat.id,
-        ctx.message.message_id,
-        [
-            {
-                type: "emoji",
-                emoji: "👻"
-            }
-        ]
-    )
-
-} catch (err) {
-
-    console.log(
-        "Reaction Error:",
         err.message
     )
 
@@ -979,17 +1170,7 @@ untuk menampilkan menu owner.</blockquote>
 {
 parse_mode:
  "HTML",
- reply_markup: {
-  inline_keyboard: [
-   [
-    {
-      text: "👑 Open Menu Owner",
-      callback_data: "owner_menu",
-      style: "danger"
-     }
-    ]
-  ]
- }
+ reply_markup: keyboard
 })
 
 }
@@ -998,6 +1179,7 @@ parse_mode:
 
 // ==================== TAMPILAN MENU ====================
 async function showMenu1(ctx, messageId = null) {
+    const keyboard = getOpenMenuKeyboard();
     const bottime = getBotRuntime();
     const caption = `\`\`\`js
 ( 👋 ) 𝗪𝗲𝗹𝗰𝗼𝗺𝗲 ${ctx.from.first_name}
@@ -1030,24 +1212,29 @@ async function showMenu1(ctx, messageId = null) {
                 media: { source: thumb },
                 caption,
                 parse_mode: 'Markdown'
-            }, { reply_markup: openMenuKeyboard });
+            }, { reply_markup: keyboard });
+            startDisco(ctx, messageId, getOpenMenuKeyboard);
         } else {
             await ctx.telegram.editMessageText(ctx.chat.id, messageId, undefined, caption, {
                 parse_mode: 'Markdown',
-                reply_markup: openMenuKeyboard
+                reply_markup: keyboard
             });
+            startDisco(ctx, messageId, getOpenMenuKeyboard);
         }
     } else {
         // Kirim pesan baru
         if (thumb) {
-            await ctx.replyWithPhoto({ source: thumb }, { caption, parse_mode: 'Markdown', reply_markup: openMenuKeyboard });
+            await ctx.replyWithPhoto({ source: thumb }, { caption, parse_mode: 'Markdown', reply_markup: keyboard });
+            startDisco(ctx, messageId, getOpenMenuKeyboard);
         } else {
-            await ctx.reply(caption, { parse_mode: 'Markdown', reply_markup: openMenuKeyboard });
+            await ctx.reply(caption, { parse_mode: 'Markdown', reply_markup: keyboard });
+            startDisco(ctx, messageId, getOpenMenuKeyboard);
         }
     }
 }
 
 async function showMenu2(ctx, messageId = null) {
+    const keyboard = getToolsKeyboard();
     const caption = `\`\`\`js
 ━━━━━ 🛠️ 𝖳𝗈𝗈𝗅𝗌 𝖬𝖾𝗇𝗎 ━━━━━
 
@@ -1068,23 +1255,27 @@ async function showMenu2(ctx, messageId = null) {
                 media: { source: thumb },
                 caption,
                 parse_mode: 'Markdown'
-            }, { reply_markup: ToolsKeyboard });
+            }, { reply_markup: keyboard });
+             startDisco(ctx, messageId, getToolsKeyboard);
         } else {
             await ctx.telegram.editMessageText(ctx.chat.id, messageId, undefined, caption, {
                 parse_mode: 'Markdown',
-                reply_markup: ToolsKeyboard
+                reply_markup: keyboard
             });
+            startDisco(ctx, messageId, getToolsKeyboard);
         }
     } else {
         if (thumb) {
-            await ctx.replyWithPhoto({ source: thumb }, { caption, parse_mode: 'Markdown', reply_markup: ToolsKeyboard });
+            await ctx.replyWithPhoto({ source: thumb }, { caption, parse_mode: 'Markdown', reply_markup: keyboard });
         } else {
-            await ctx.reply(caption, { parse_mode: 'Markdown', reply_markup: ToolsKeyboard });
+            await ctx.reply(caption, { parse_mode: 'Markdown', reply_markup: keyboard });
+            startDisco(ctx, messageId, getToolsKeyboard);
         }
     }
 }
 
 async function EncV1(ctx, messageId = null) {
+    const keyboard = getEncV1Keyboard();
     const caption = `\`\`\`js
 ━━━ ⚙️ 𝖤𝗇𝖼𝗋𝗒𝗉𝗍 𝖬𝖾𝗇𝗎 𝖵𝟣 ━━━
  ♱ /artillery Light & Secure 𝗉𝗋𝗈𝗍𝖾𝖼𝗍𝗂𝗈𝗇
@@ -1110,23 +1301,28 @@ async function EncV1(ctx, messageId = null) {
                 media: { source: thumb },
                 caption,
                 parse_mode: 'Markdown'
-            }, { reply_markup: EncV1Keyboard });
+            }, { reply_markup: keyboard });
+            startDisco(ctx, messageId, getEncV1Keyboard);
         } else {
             await ctx.telegram.editMessageText(ctx.chat.id, messageId, undefined, caption, {
                 parse_mode: 'Markdown',
-                reply_markup: EncV1Keyboard
+                reply_markup: keyboard
             });
+            startDisco(ctx, messageId, getEncV1Keyboard);
         }
     } else {
         if (thumb) {
-            await ctx.replyWithPhoto({ source: thumb }, { caption, parse_mode: 'Markdown', reply_markup: EncV1Keyboard });
+            await ctx.replyWithPhoto({ source: thumb }, { caption, parse_mode: 'Markdown', reply_markup: keyboard });
+            startDisco(ctx, messageId, getEncV1Keyboard);
         } else {
-            await ctx.reply(caption, { parse_mode: 'Markdown', reply_markup: EncV1Keyboard });
+            await ctx.reply(caption, { parse_mode: 'Markdown', reply_markup: keyboard });
+            startDisco(ctx, messageId, getEncV1Keyboard);
         }
     }
 }
 
 async function EncV2(ctx, messageId = null) {
+    const keyboard = getEncV2Keyboard();
     const caption = `\`\`\`js
 ━━━ ⚙️ 𝖤𝗇𝖼𝗋𝗒𝗉𝗍 𝖬𝖾𝗇𝗎 𝖵𝟤 ━━━
  ♱ /enccustom 𝖢𝗎𝗌𝗍𝗈𝗆 𝖭𝖺𝗆𝖾
@@ -1140,7 +1336,7 @@ async function EncV2(ctx, messageId = null) {
  ♱ /invishtml Encrypt Hmtl
 
 ━━━ 🔍 Cara Penggunaan ━━━
- ♱ /enccustom 果Prime皮Sabil出Official去
+ ♱ /enccustom 果Prime皮Sabil出
  ♱ Jangan ada spasi dalam text\`\`\`
 `;
     const thumb = await getThumbnailBuffer();
@@ -1151,18 +1347,22 @@ async function EncV2(ctx, messageId = null) {
                 media: { source: thumb },
                 caption,
                 parse_mode: 'Markdown'
-            }, { reply_markup: EncV2Keyboard });
+            }, { reply_markup: keyboard });
+            startDisco(ctx, messageId, getEncV2Keyboard);
         } else {
             await ctx.telegram.editMessageText(ctx.chat.id, messageId, undefined, caption, {
                 parse_mode: 'Markdown',
-                reply_markup: EncV2Keyboard
+                reply_markup: keyboard
             });
+            startDisco(ctx, messageId, getEncV2Keyboard);
         }
     } else {
         if (thumb) {
-            await ctx.replyWithPhoto({ source: thumb }, { caption, parse_mode: 'Markdown', reply_markup: EncV2Keyboard });
+            await ctx.replyWithPhoto({ source: thumb }, { caption, parse_mode: 'Markdown', reply_markup: keyboard });
+            startDisco(ctx, messageId, getEncV2Keyboard);
         } else {
-            await ctx.reply(caption, { parse_mode: 'Markdown', reply_markup: EncV2Keyboard });
+            await ctx.reply(caption, { parse_mode: 'Markdown', reply_markup: keyboard });
+          startDisco(ctx, messageId, getEncV2Keyboard);  
         }
     }
 }
@@ -1170,44 +1370,37 @@ async function EncV2(ctx, messageId = null) {
 // ==================== CALLBACK ====================
 bot.action('open_menu', async (ctx) => {
     const messageId = ctx.callbackQuery.message.message_id;
-    await typing(ctx)
     await showMenu1(ctx, messageId);
     await ctx.answerCbQuery();
 });
 
 bot.action('main_menu', async (ctx) => {
     const messageId = ctx.callbackQuery.message.message_id;
-    await typing(ctx)
     await showMenu1(ctx, messageId);
     await ctx.answerCbQuery();
 });
 
 bot.action('enc_menu_v1', async (ctx) => {
     const messageId = ctx.callbackQuery.message.message_id;
-    await typing(ctx)
     await EncV1(ctx, messageId);
     await ctx.answerCbQuery();
 });
 
 bot.action('enc_menu_v2', async (ctx) => {
     const messageId = ctx.callbackQuery.message.message_id;
-    await typing(ctx)
     await EncV2(ctx, messageId);
     await ctx.answerCbQuery();
 });
 
 bot.action('tools_menu', async (ctx) => {
-    const messageId = ctx.callbackQuery.message.message_id;
-    await typing(ctx)
+    const messageId = ctx.callbackQuery.message.message_id
     await showMenu2(ctx, messageId);
     await ctx.answerCbQuery();
 });
 
-bot.action(
-"owner_menu",
-async (ctx) => {
-
-    const userId =
+bot.action("owner_menu", async (ctx) => {
+   const keyboard = getownmenu();
+   const userId =
         Number(
             ctx.from.id
         )
@@ -1229,7 +1422,6 @@ async (ctx) => {
 
     }
 
-    await typing(ctx)
     await ctx.answerCbQuery()
     await ctx.editMessageText(
 
@@ -1244,31 +1436,13 @@ Cek Update From Link Raw.Github</b></blockquote>
 `,
             {
                 parse_mode: "HTML",
-                reply_markup: {
-                   inline_keyboard: [
-                      [ 
-                       { 
-                         text: "⌫ Back", 
-                         callback_data: "owner_back", 
-                         style: "primary" 
-                        }
-                       ]
-                     ]
-                   }
-                  }
-                )
-}
+                reply_markup: keyboard
+                  })
+})
 
-)
-
-bot.action(
-    "owner_back",
-    async (ctx) => {
-
-        const userId =
-            Number(
-                ctx.from.id
-            )
+bot.action("owner_back", async (ctx) => {
+        const keyboard = getkeyboardown();
+        const userId = Number(ctx.from.id)
 
         if (
             userId !==
@@ -1296,17 +1470,7 @@ untuk menampilkan menu owner.</blockquote>
 `,
             {
                 parse_mode: "HTML",
-                reply_markup: {
-                    inline_keyboard: [
-                        [
-                            {
-                                text: "👑 Open Menu Owner",
-                                callback_data: "owner_menu",
-                                style: "danger"
-                            }
-                        ]
-                    ]
-                }
+                reply_markup: keyboard
             }
         )
 
@@ -1423,7 +1587,7 @@ function customStyle(code,name){
   const varName=randomName(names)
 
   return `(function(){
-${chaosVars(1200,name)}
+${chaosVars(1200,names)}
 function ${name}(){
 const ${varName}="${b64}";
 return Buffer.from(${varName},"base64").toString();
@@ -1764,103 +1928,280 @@ ctx.reply(String(e))
 
 // ==================== GETSOURCE ====================
 
-bot.command("getsource", async (ctx) => {
+bot.command('getsource', async (ctx) => {
+    const userId = ctx.from.id;
+    const args = ctx.message.text.split(/\s+/);
+    const url = args[1];
+    
+    if (url && url.match(/^https?:\/\//)) {
+        await processDownload(ctx, url);
+    } else {
+        waitingForUrl.set(userId, true);
+        await ctx.reply(
+            `🌐 *GET SOURCE WEBSITE*\n\n` +
+            `Kirimkan URL website yang ingin didownload source-nya.\n\n` +
+            `<b>Contoh:</b>\n<code>https://example.com</code>\n\n` +
+            `Klik tombol di bawah untuk membatalkan.`,
+            { parse_mode: 'HTML', reply_markup: cancelButton }
+        );
+    }
+});
 
-try {
+// ==================== HANDLER UNTUK MENERIMA URL ====================
+bot.on('text', async (ctx, next) => {
+    const userId = ctx.from.id;
+    
+    if (waitingForUrl.get(userId)) {
+        waitingForUrl.delete(userId);
+        const url = ctx.message.text.trim();
+        
+        if (!url.match(/^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/)) {
+            await ctx.reply('❌ URL tidak valid. Pastikan URL diawali dengan http:// atau https://', { parse_mode: 'HTML', reply_markup: cancelButton });
+            waitingForUrl.set(userId, true);
+            return;
+        }
+        
+        await processDownload(ctx, url);
+        return;
+    }
+    return next();
+});
 
-const url =
-ctx.message.text
-.split(" ")
-.slice(1)
-.join(" ")
+bot.command("cekfunc", async (ctx) => {
+  try {
+    // Cek apakah reply ke pesan
+    if (!ctx.message.reply_to_message) {
+      return ctx.reply(`\`\`\`js
+❌ Reply function/kode yang ingin dicek.\`\`\``, {
+        parse_mode: "Markdown"
+      });
+    }
 
-if(!url){
-return ctx.reply(
-"Example:\n/getsource https://example.com"
-)
-}
+    // Ambil teks dari pesan yang direply
+    const text =
+      ctx.message.reply_to_message.text ||
+      ctx.message.reply_to_message.caption ||
+      ctx.message.reply_to_message.document?.file_name;
 
-const res =
-await axios.get(url)
+    if (!text) {
+      return ctx.reply(`\`\`\`js
+❌ Pesan yang direply tidak berisi kode.\`\`\``, {
+        parse_mode: "Markdown"
+      });
+    }
 
-const html = res.data
+    // Kirim pesan "Menganalisis error..."
+    const loadingMsg = await ctx.reply("🔍 *Menganalisis error...*", {
+      parse_mode: "Markdown"
+    });
 
-await ctx.replyWithDocument({
-source: Buffer.from(html),
-filename: "source.html"
-})
+    // Fungsi untuk menghapus pesan loading
+    const deleteLoading = async () => {
+      try {
+        await ctx.deleteMessage(loadingMsg.message_id);
+      } catch (e) {
+        // Abaikan jika gagal hapus
+      }
+    };
 
-} catch(e){
+    // Deteksi bahasa pemrograman
+    const detectLanguage = (code) => {
+      const trimmed = code.trim();
+      
+      // Cek HTML
+      if (/^<(!DOCTYPE|html|body|div|script|style)/i.test(trimmed)) {
+        return "html";
+      }
+      
+      // Cek JSON
+      if (/^[{[]/.test(trimmed) && /[}\]]$/.test(trimmed)) {
+        try {
+          JSON.parse(trimmed);
+          return "json";
+        } catch (e) {
+          // Bukan JSON valid
+        }
+      }
+      
+      // Cek Python
+      if (/^import |^from |^def |^class |^print\(|^if __name__/.test(trimmed) ||
+          /^#!\/usr\/bin\/env python/.test(trimmed)) {
+        return "python";
+      }
+      
+      // Default ke JavaScript
+      return "javascript";
+    };
 
-ctx.reply(String(e))
+    const language = detectLanguage(text);
+    const isFile = ctx.message.reply_to_message.document !== undefined;
 
-}
+    // Validasi kode berdasarkan bahasa
+    let error = null;
+    let validationResult = null;
 
-})
+    try {
+      switch (language) {
+        case "javascript":
+          // Cek JavaScript dengan Acorn
+          let acorn;
+          try {
+            acorn = require("acorn");
+          } catch {
+            await deleteLoading();
+            return ctx.reply(
+              "❌ *Module acorn belum terinstall.*\nInstall dengan: `npm install acorn`",
+              { parse_mode: "Markdown" }
+            );
+          }
 
-bot.command("cekcode", async (ctx) => {
-try {
+          try {
+            acorn.parse(text, {
+              ecmaVersion: "latest",
+              sourceType: "module",
+              locations: true
+            });
+            validationResult = { success: true };
+          } catch (err) {
+            error = err;
+          }
+          break;
 
-if (!ctx.message.reply_to_message)
-return ctx.reply("Reply function JavaScript yang ingin dicek.")
+        case "python":
+          // Validasi Python sederhana (tanpa eval untuk keamanan)
+          const pythonErrors = [];
+          const lines = text.split("\n");
+          
+          // Cek indentasi
+          let indentLevel = 0;
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const stripped = line.trim();
+            
+            if (!stripped) continue;
+            
+            // Cek indentasi
+            const spaces = line.length - line.trimStart().length;
+            if (spaces % 4 !== 0 && spaces > 0) {
+              pythonErrors.push(`Indentasi tidak konsisten di baris ${i + 1}`);
+            }
+            
+            // Cek colon setelah if/for/while/def/class
+            if (/^(if|for|while|def|class|elif|else|try|except|finally|with)\b/.test(stripped)) {
+              if (!/:$/.test(stripped)) {
+                pythonErrors.push(`Missing ':' di baris ${i + 1}`);
+              }
+            }
+          }
+          
+          if (pythonErrors.length > 0) {
+            error = {
+              message: pythonErrors.join("\n"),
+              loc: { line: 1, column: 1 }
+            };
+          } else {
+            validationResult = { success: true };
+          }
+          break;
 
-const text =
-ctx.message.reply_to_message.text ||
-ctx.message.reply_to_message.caption
+        case "html":
+          // Validasi HTML sederhana
+          const htmlErrors = [];
+          
+          // Cek tag penutup
+          const openTags = text.match(/<([a-z][a-z0-9]*)/gi) || [];
+          const closeTags = text.match(/<\/([a-z][a-z0-9]*)>/gi) || [];
+          
+          const openTagNames = openTags.map(t => t.replace(/<(.+)/, '$1').toLowerCase());
+          const closeTagNames = closeTags.map(t => t.replace(/<\/(.+)>/, '$1').toLowerCase());
+          
+          for (const tag of openTagNames) {
+            if (!['br', 'hr', 'img', 'input', 'meta', 'link'].includes(tag)) {
+              const openCount = openTagNames.filter(t => t === tag).length;
+              const closeCount = closeTagNames.filter(t => t === tag).length;
+              if (openCount !== closeCount) {
+                htmlErrors.push(`Tag <${tag}> tidak seimbang (buka: ${openCount}, tutup: ${closeCount})`);
+              }
+            }
+          }
+          
+          if (htmlErrors.length > 0) {
+            error = {
+              message: htmlErrors.join("\n"),
+              loc: { line: 1, column: 1 }
+            };
+          } else {
+            validationResult = { success: true };
+          }
+          break;
 
-if (!text)
-return ctx.reply("Pesan yang direply tidak berisi kode.")
+        case "json":
+          try {
+            JSON.parse(text);
+            validationResult = { success: true };
+          } catch (err) {
+            error = {
+              message: err.message,
+              loc: { line: 1, column: 1 }
+            };
+          }
+          break;
 
-let acorn
-try {
-acorn = require("acorn")
-} catch {
-return ctx.reply("Module acorn belum terinstall.\nInstall dengan: npm install acorn")
-}
+        default:
+          validationResult = { success: true };
+      }
+    } catch (err) {
+      error = err;
+    }
 
-try {
+    // Hapus pesan loading
+    await deleteLoading();
 
-acorn.parse(text, {
-ecmaVersion: "latest",
-sourceType: "module",
-locations: true
-})
+    // Kirim hasil
+    if (validationResult?.success) {
+      // Tidak ada error
+      const fileInfo = isFile ? "📄 *File*" : "📝 *Kode*";
+      return ctx.reply(
+        `✅ *${fileInfo} ${language.toUpperCase()} Aman!*\n` +
+        `✨ *Tidak ditemukan error* pada kode ${language} Anda.\n` +
+        `🔍 *Status:* ✅ Aman dan valid`,
+        { parse_mode: "Markdown" }
+      );
+    } else if (error) {
+      // Ada error
+      const lines = text.split("\n");
+      const line = error.loc?.line || 1;
+      const column = error.loc?.column || 1;
 
-return ctx.reply(`🔎 Mengecek Code.....
+      const start = Math.max(0, line - 3);
+      const end = Math.min(lines.length, line + 2);
 
-Asekk Ga ada Error Cuy Di Code Nya.`)
+      const snippet = lines.slice(start, end).map((l, i) => {
+        const num = start + i + 1;
+        return num === line
+          ? `👉 \`${num}\` | ${l}`
+          : `   \`${num}\` | ${l}`;
+      }).join("\n");
 
-} catch (err) {
+      const fileInfo = isFile ? "📄 *File*" : "📝 *Kode*";
+      
+      return ctx.reply(
+        `❌ *${fileInfo} ${language.toUpperCase()} Mengandung Error!*\n\n` +
+        `*Error:* ${error.message}\n` +
+        `*Lokasi:* Line ${line}, Column ${column}\n\n` +
+        `📌 *Cuplikan Kode:*\n\`\`\`\n${snippet}\n\`\`\``,
+        { parse_mode: "Markdown" }
+      );
+    }
 
-const lines = text.split("\n")
-const line = err.loc.line
-const column = err.loc.column
-
-const start = Math.max(0, line - 3)
-const end = Math.min(lines.length, line + 2)
-
-const snippet = lines.slice(start, end).map((l, i) => {
-const num = start + i + 1
-return num === line
-? `👉 ${num} | ${l}`
-: `   ${num} | ${l}`
-}).join("\n")
-
-return ctx.reply(`Yahhh Code Nya Error Ni Fixed Dong
-
-${err.message}
-Line ${line}:${column}
-
-📌 Cuplikan:
-${snippet}`)
-
-}
-
-} catch (e) {
-console.error(e)
-ctx.reply("Terjadi error saat mengecek code.")
-}
-
+  } catch (e) {
+    console.error("Error in cekcode command:", e);
+    return ctx.reply(
+      "❌ *Terjadi error saat mengecek code.*\n" +
+      "Pastikan kode yang Anda kirimkan valid.",
+      { parse_mode: "Markdown" }
+    );
+  }
 });
 
 // ==================== INFOERROR ====================
@@ -2922,26 +3263,31 @@ Atau reply ke file .js</blockquote>`,
   await ctx.telegram.deleteMessage(ctx.chat.id, loading.message_id).catch(() => {})
 
   if (success) {
-    const out =
-`HASIL FIX ERROR — BERHASIL
+    await ctx.reply(`HASIL FIX ERROR — BERHASIL
 ───────────────────────────
-Error Awal : ${before.errorMsg || "—"}
-Baris      : ${before.errorLine ? `Baris ke-${before.errorLine}` : "Tidak terdeteksi"}
-Saran      : ${before.fixSuggest || "—"}
-Fix        : ${fixNotes.join(" | ") || "Auto-fixed"}
+Error Awal : \`\`\`js
+${before.errorMsg || "—"}\`\`\`
+
+Baris      : \`\`\`js
+${before.errorLine ? `Baris ke-${before.errorLine}` : "Tidak terdeteksi"}\`\`\`
+
+Saran      : \`\`\`js
+${before.fixSuggest || "—"}\`\`\`
+
+Fix        : \`\`\`js
+${fixNotes.join(" | ") || "Auto-fixed"}\`\`\`
 ───────────────────────────
 
 SEBELUM (dengan anotasi error):
-
-${before.annotated}
+\`\`\`js
+${before.annotated}\`\`\`
 
 ───────────────────────────
 
 SESUDAH (kode diperbaiki):
-
-${renderAnnotated(fixed, null)}`
-
-    await ctx.reply(`<pre>${esc(out)}</pre>`, { parse_mode: "HTML" })
+\`\`\`js
+${renderAnnotated(fixed, null)}\`\`\`
+`, { parse_mode: "Markdown" })
 
     const tmp = path.join(BASE_DIR, `fixed_${Date.now()}.js`)
     fs.writeFileSync(tmp, fixed)
@@ -2949,18 +3295,25 @@ ${renderAnnotated(fixed, null)}`
     fs.unlinkSync(tmp)
   } else {
     const out =
-`<blockquote>HASIL FIX ERROR — GAGAL DIPERBAIKI OTOMATIS
+
+
+    await ctx.reply(`
+HASIL FIX ERROR — GAGAL DIPERBAIKI OTOMATIS
 ───────────────────────────
-Error  : ${result.errorMsg}
-Baris  : ${result.errorLine ? `Baris ke-${result.errorLine}` : "Tidak terdeteksi"}
-Saran  : ${result.fixSuggest}
+Error  : \`\`\`js
+${result.errorMsg}
+
+Baris  : \`\`\`js
+${result.errorLine ? `Baris ke-${result.errorLine}` : "Tidak terdeteksi"}\`\`\`
+
+Saran  : \`\`\`js
+${result.fixSuggest}\`\`\`
 ───────────────────────────
 
 KODE + ANOTASI:
-
-${result.annotated}</blockquote>`
-
-    await ctx.reply(`<pre>${esc(out)}</pre>`, { parse_mode: "HTML" })
+\`\`\`js
+${result.annotated}\`\`\`
+`, { parse_mode: "HTML" })
   }
 });
 
@@ -2992,14 +3345,14 @@ Atau reply ke file .js</blockquote>`,
   await ctx.telegram.deleteMessage(ctx.chat.id, loading.message_id).catch(() => {})
 
   const out = `HASIL CLEAN CODE\n${"─".repeat(27)}\n\n${cleaned}`
-  await ctx.reply(`<pre>${esc(out)}</pre>`, { parse_mode: "HTML" })
+  await ctx.reply(`\`\`\`js
+  ${esc(out)}\`\`\``, { parse_mode: "HTML" })
 
   const tmp = path.join(BASE_DIR, `clean_${Date.now()}.js`)
   fs.writeFileSync(tmp, cleaned)
   await ctx.replyWithDocument({ source: tmp, filename: "clean_code.js" }, { caption: "File .js hasil Clean Code" })
   fs.unlinkSync(tmp)
 });
-
 bot.command("cekupdate", async (ctx) => {
 
         if (
@@ -3036,9 +3389,7 @@ bot.command("setlinkupdate", async (ctx) => {
 
 })
 
-bot.on(
-    "text",
-    async (ctx, next) => {
+bot.on("text", async (ctx, next) => {
 
         const userId =
             Number(ctx.from.id)
@@ -3338,17 +3689,5 @@ console.log(
     `[ AUTO BACKUP SYSTEM ACTIVE ]`
 );
 bot.launch().then(() => console.log('✅ Bot obfuscator berjalan'));
-setTimeout(
-    async () => {
-
-        await updater
-        .sendUpdateNotification(
-            bot,
-            config
-        )
-
-    },
-    3000
-)
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
