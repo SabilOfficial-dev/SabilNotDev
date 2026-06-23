@@ -1238,7 +1238,7 @@ async function showMenu2(ctx, messageId = null) {
     const caption = `\`\`\`js
 ━━━━━ 🛠️ 𝖳𝗈𝗈𝗅𝗌 𝖬𝖾𝗇𝗎 ━━━━━
 
- ♱ /cekcode Reply code
+ ♱ /cekfunc Reply code
  ♱ /cekerror Reply file/code
  ♱ /infoerror Reply File/code
  ♱ /cekidemoji Reply emoji
@@ -1966,54 +1966,91 @@ bot.on('text', async (ctx, next) => {
     }
     return next();
 });
-
+// ==================== CEKFUNC MULTI-BAHASA ====================
 bot.command("cekfunc", async (ctx) => {
   try {
     // Cek apakah reply ke pesan
     if (!ctx.message.reply_to_message) {
-      return ctx.reply(`\`\`\`js
-❌ Reply function/kode yang ingin dicek.\`\`\``, {
-        parse_mode: "Markdown"
-      });
+      return ctx.reply(
+        `
+ɢᴜɴᴀᴋᴀɴ /cekfunc sᴀᴍʙɪʟ ʀᴇᴘʟʏ ғɪʟᴇ ᴀᴛᴀᴜ ᴘᴇsᴀɴ ᴄᴏᴅᴇ`,
+        { parse_mode: "Markdown" }
+      );
     }
 
-    // Ambil teks dari pesan yang direply
-    const text =
-      ctx.message.reply_to_message.text ||
-      ctx.message.reply_to_message.caption ||
-      ctx.message.reply_to_message.document?.file_name;
+    const replied = ctx.message.reply_to_message;
+    let code = "";
+    let fileName = "code";
+    let isFile = false;
 
-    if (!text) {
-      return ctx.reply(`\`\`\`js
-❌ Pesan yang direply tidak berisi kode.\`\`\``, {
-        parse_mode: "Markdown"
-      });
+    // Ambil kode dari reply
+    if (replied.document) {
+      const ext = path.extname(replied.document.file_name).toLowerCase();
+      const allowed = [".js", ".py", ".html", ".json"];
+
+      if (!allowed.includes(ext)) {
+        return ctx.reply(
+          `\`\`\`js
+❌ Format tidak didukung!\`\`\``,
+          { parse_mode: "Markdown" }
+        );
+      }
+
+      fileName = replied.document.file_name;
+      isFile = true;
+
+      try {
+        code = await downloadTgFile(ctx.telegram, replied.document.file_id);
+      } catch (e) {
+        return ctx.reply(
+          `\`\`\`js
+❌ Gagal download file:
+${e.message}\`\`\``,
+          { parse_mode: "Markdown" }
+        );
+      }
+    } else if (replied.text || replied.caption) {
+      code = (replied.text || replied.caption || "").trim();
+    } else {
+      return ctx.reply(
+        `\`\`\`js
+❌ Reply kode atau file yang ingin dicek.\`\`\``,
+        { parse_mode: "Markdown" }
+      );
     }
 
-    // Kirim pesan "Menganalisis error..."
+    if (!code.trim()) {
+      return ctx.reply(
+        `\`\`\`js
+❌ Kode kosong.\`\`\``,
+        { parse_mode: "Markdown" }
+      );
+    }
+
+    // Kirim pesan loading
     const loadingMsg = await ctx.reply("🔍 *Menganalisis error...*", {
       parse_mode: "Markdown"
     });
 
-    // Fungsi untuk menghapus pesan loading
+    // Fungsi hapus loading
     const deleteLoading = async () => {
       try {
         await ctx.deleteMessage(loadingMsg.message_id);
       } catch (e) {
-        // Abaikan jika gagal hapus
+        // Abaikan
       }
     };
 
-    // Deteksi bahasa pemrograman
-    const detectLanguage = (code) => {
-      const trimmed = code.trim();
-      
-      // Cek HTML
-      if (/^<(!DOCTYPE|html|body|div|script|style)/i.test(trimmed)) {
+    // Deteksi bahasa
+    const detectLanguage = (text) => {
+      const trimmed = text.trim();
+
+      // HTML
+      if (/^<(!DOCTYPE|html|body|div|script|style|h1|p|a|img|ul|ol|li|table|form|input|button|link|meta)/i.test(trimmed)) {
         return "html";
       }
-      
-      // Cek JSON
+
+      // JSON
       if (/^[{[]/.test(trimmed) && /[}\]]$/.test(trimmed)) {
         try {
           JSON.parse(trimmed);
@@ -2022,27 +2059,30 @@ bot.command("cekfunc", async (ctx) => {
           // Bukan JSON valid
         }
       }
-      
-      // Cek Python
-      if (/^import |^from |^def |^class |^print\(|^if __name__/.test(trimmed) ||
-          /^#!\/usr\/bin\/env python/.test(trimmed)) {
+
+      // Python
+      if (/^(import|from|def|class|print|if __name__|#!\/usr\/bin\/env python|return\s+)/m.test(trimmed) ||
+          /^[a-z_][a-z0-9_]*\s*\([^)]*\)\s*:/m.test(trimmed) ||
+          /^class\s+[A-Za-z_][A-Za-z0-9_]*\s*[:\(]/m.test(trimmed)) {
         return "python";
       }
-      
-      // Default ke JavaScript
+
+      // JavaScript (default)
       return "javascript";
     };
 
-    const language = detectLanguage(text);
-    const isFile = ctx.message.reply_to_message.document !== undefined;
+    const language = detectLanguage(code);
+    let errorResult = null;
+    let errorMsg = "";
+    let errorLine = null;
+    let errorCol = null;
+    let fixSuggest = "";
+    let annotated = "";
 
-    // Validasi kode berdasarkan bahasa
-    let error = null;
-    let validationResult = null;
-
+    // Analisis berdasarkan bahasa
     try {
       switch (language) {
-        case "javascript":
+        case "javascript": {
           // Cek JavaScript dengan Acorn
           let acorn;
           try {
@@ -2050,155 +2090,294 @@ bot.command("cekfunc", async (ctx) => {
           } catch {
             await deleteLoading();
             return ctx.reply(
-              "❌ *Module acorn belum terinstall.*\nInstall dengan: `npm install acorn`",
+              `\`\`\`js
+❌ Module acorn belum terinstall.
+
+Install dengan:
+npm install acorn\`\`\``,
               { parse_mode: "Markdown" }
             );
           }
 
           try {
-            acorn.parse(text, {
+            acorn.parse(code, {
               ecmaVersion: "latest",
               sourceType: "module",
               locations: true
             });
-            validationResult = { success: true };
+            errorResult = { success: true };
           } catch (err) {
-            error = err;
+            errorMsg = err.message;
+            errorLine = err.loc?.line || null;
+            errorCol = err.loc?.column || null;
+
+            // Saran perbaikan untuk JavaScript
+            if (/unexpected token 'else'/i.test(errorMsg)) {
+              fixSuggest = "Ada blok `if` tidak lengkap atau kurung kurawal `{}` hilang sebelum `else`.";
+            } else if (/unexpected token/i.test(errorMsg)) {
+              fixSuggest = "Periksa tanda kurung `()`, kurawal `{}`, siku `[]`, atau titik koma `;` yang hilang/salah posisi.";
+            } else if (/is not defined/i.test(errorMsg)) {
+              fixSuggest = "Variabel/fungsi belum dideklarasikan. Tambahkan `const/let/var` atau pastikan sudah di-import.";
+            } else if (/cannot read propert/i.test(errorMsg)) {
+              fixSuggest = "Objek bernilai null/undefined. Gunakan optional chaining `?.` atau cek nilai terlebih dahulu.";
+            } else if (/await is only valid/i.test(errorMsg)) {
+              fixSuggest = "`await` hanya valid di dalam `async function`. Bungkus kode dengan `async function() {}`.";
+            } else if (/missing \} after/i.test(errorMsg)) {
+              fixSuggest = "Tanda kurung `()` tidak ditutup dengan benar.";
+            } else if (/missing \} after/i.test(errorMsg)) {
+              fixSuggest = "Kurung kurawal `{}` tidak ditutup. Cek penutupan function/object/class.";
+            } else if (/invalid or unexpected/i.test(errorMsg)) {
+              fixSuggest = "Token tidak valid di posisi ini. Cek sintaks di sekitar baris error.";
+            } else if (/assignment to constant/i.test(errorMsg)) {
+              fixSuggest = "Tidak bisa mengubah nilai `const`. Ganti dengan `let` jika perlu re-assign.";
+            } else if (/duplicate parameter/i.test(errorMsg)) {
+              fixSuggest = "Ada parameter yang sama dalam function. Ganti nama parameter yang duplikat.";
+            } else if (/identifier.*already.*declared/i.test(errorMsg)) {
+              fixSuggest = "Nama variabel sudah dipakai di scope yang sama. Ganti nama atau hapus deklarasi duplikat.";
+            } else if (/cannot use.*before.*init/i.test(errorMsg)) {
+              fixSuggest = "Variabel dipakai sebelum dideklarasikan (temporal dead zone). Pindahkan deklarasi ke atas.";
+            } else if (/unexpected end of input/i.test(errorMsg)) {
+              fixSuggest = "Kode belum selesai. Ada kurung atau string yang tidak ditutup di bagian akhir.";
+            } else if (/octal.*strict/i.test(errorMsg)) {
+              fixSuggest = "Literal oktal tidak diizinkan di strict mode. Hapus angka 0 di depan atau gunakan 0o prefix.";
+            } else {
+              fixSuggest = "Periksa sintaks dan logika di sekitar baris yang ditunjuk.";
+            }
+
+            // Annotasi
+            const lines = code.split("\n");
+            annotated = lines.map((ln, idx) => {
+              const no = String(idx + 1).padStart(4, " ");
+              return errorLine && idx + 1 === errorLine
+                ? `${no} | >>>  ${ln}   ← ERROR DI SINI`
+                : `${no} |     ${ln}`;
+            }).join("\n");
           }
           break;
+        }
 
-        case "python":
-          // Validasi Python sederhana (tanpa eval untuk keamanan)
-          const pythonErrors = [];
-          const lines = text.split("\n");
-          
-          // Cek indentasi
-          let indentLevel = 0;
+        case "python": {
+          // Validasi Python sederhana
+          const errors = [];
+          const lines = code.split("\n");
+
           for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             const stripped = line.trim();
-            
             if (!stripped) continue;
-            
+
             // Cek indentasi
             const spaces = line.length - line.trimStart().length;
-            if (spaces % 4 !== 0 && spaces > 0) {
-              pythonErrors.push(`Indentasi tidak konsisten di baris ${i + 1}`);
+            if (spaces > 0 && spaces % 4 !== 0) {
+              errors.push(`Indentasi tidak konsisten di baris ${i + 1} (${spaces} spasi)`);
             }
-            
-            // Cek colon setelah if/for/while/def/class
+
+            // Cek colon
             if (/^(if|for|while|def|class|elif|else|try|except|finally|with)\b/.test(stripped)) {
               if (!/:$/.test(stripped)) {
-                pythonErrors.push(`Missing ':' di baris ${i + 1}`);
+                errors.push(`Missing ':' di baris ${i + 1}`);
+              }
+            }
+
+            // Cek parentheses
+            if (stripped.includes("(") && !stripped.includes(")")) {
+              const openCount = (stripped.match(/\(/g) || []).length;
+              const closeCount = (stripped.match(/\)/g) || []).length;
+              if (openCount > closeCount) {
+                errors.push(`Tanda kurung tidak seimbang di baris ${i + 1}`);
               }
             }
           }
-          
-          if (pythonErrors.length > 0) {
-            error = {
-              message: pythonErrors.join("\n"),
-              loc: { line: 1, column: 1 }
-            };
+
+          if (errors.length > 0) {
+            errorMsg = errors.join("\n");
+            errorLine = 1;
+            fixSuggest = "Perbaiki indentasi dan pastikan semua blok memiliki ':'.";
+            annotated = code.split("\n").map((ln, idx) => {
+              return `${String(idx + 1).padStart(4, " ")} | ${ln}`;
+            }).join("\n");
           } else {
-            validationResult = { success: true };
+            errorResult = { success: true };
           }
           break;
+        }
 
-        case "html":
-          // Validasi HTML sederhana
-          const htmlErrors = [];
-          
-          // Cek tag penutup
-          const openTags = text.match(/<([a-z][a-z0-9]*)/gi) || [];
-          const closeTags = text.match(/<\/([a-z][a-z0-9]*)>/gi) || [];
-          
-          const openTagNames = openTags.map(t => t.replace(/<(.+)/, '$1').toLowerCase());
-          const closeTagNames = closeTags.map(t => t.replace(/<\/(.+)>/, '$1').toLowerCase());
-          
-          for (const tag of openTagNames) {
-            if (!['br', 'hr', 'img', 'input', 'meta', 'link'].includes(tag)) {
-              const openCount = openTagNames.filter(t => t === tag).length;
-              const closeCount = closeTagNames.filter(t => t === tag).length;
-              if (openCount !== closeCount) {
-                htmlErrors.push(`Tag <${tag}> tidak seimbang (buka: ${openCount}, tutup: ${closeCount})`);
-              }
+        case "html": {
+          const errors = [];
+          const openTagMap = {};
+          const closeTagMap = {};
+
+          // Ambil semua tag
+          const openTags = code.match(/<([a-z][a-z0-9]*)\b[^>]*>/gi) || [];
+          const closeTags = code.match(/<\/([a-z][a-z0-9]*)>/gi) || [];
+
+          openTags.forEach(tag => {
+            const name = tag.replace(/<([a-z][a-z0-9]*).*/i, '$1').toLowerCase();
+            if (!["br", "hr", "img", "input", "meta", "link", "area", "base", "col", "embed", "source", "track", "wbr"].includes(name)) {
+              openTagMap[name] = (openTagMap[name] || 0) + 1;
+            }
+          });
+
+          closeTags.forEach(tag => {
+            const name = tag.replace(/<\/([a-z][a-z0-9]*)>/i, '$1').toLowerCase();
+            closeTagMap[name] = (closeTagMap[name] || 0) + 1;
+          });
+
+          // Cek keseimbangan tag
+          for (const [tag, count] of Object.entries(openTagMap)) {
+            const closeCount = closeTagMap[tag] || 0;
+            if (count !== closeCount) {
+              errors.push(`Tag <${tag}> tidak seimbang (buka: ${count}, tutup: ${closeCount})`);
             }
           }
-          
-          if (htmlErrors.length > 0) {
-            error = {
-              message: htmlErrors.join("\n"),
-              loc: { line: 1, column: 1 }
-            };
+
+          // Cek tag penutup tanpa pembuka
+          for (const [tag, count] of Object.entries(closeTagMap)) {
+            if (!openTagMap[tag]) {
+              errors.push(`Tag penutup </${tag}> tanpa pembuka`);
+            }
+          }
+
+          if (errors.length > 0) {
+            errorMsg = errors.join("\n");
+            errorLine = 1;
+            fixSuggest = "Pastikan semua tag HTML seimbang dan tidak ada tag penutup tanpa pembuka.";
+            annotated = code.split("\n").map((ln, idx) => {
+              return `${String(idx + 1).padStart(4, " ")} | ${ln}`;
+            }).join("\n");
           } else {
-            validationResult = { success: true };
+            errorResult = { success: true };
           }
           break;
+        }
 
-        case "json":
+        case "json": {
           try {
-            JSON.parse(text);
-            validationResult = { success: true };
+            JSON.parse(code);
+            errorResult = { success: true };
           } catch (err) {
-            error = {
-              message: err.message,
-              loc: { line: 1, column: 1 }
-            };
+            errorMsg = err.message;
+            // Coba cari posisi error
+            const match = errorMsg.match(/position (\d+)/);
+            if (match) {
+              const pos = parseInt(match[1]);
+              const lines = code.split("\n");
+              let charCount = 0;
+              for (let i = 0; i < lines.length; i++) {
+                charCount += lines[i].length + 1;
+                if (charCount > pos) {
+                  errorLine = i + 1;
+                  break;
+                }
+              }
+            } else {
+              errorLine = 1;
+            }
+            fixSuggest = "Periksa format JSON. Pastikan semua string ditutup dengan quote, tidak ada trailing comma, dan struktur benar.";
+            annotated = code.split("\n").map((ln, idx) => {
+              return `${String(idx + 1).padStart(4, " ")} | ${ln}`;
+            }).join("\n");
           }
           break;
+        }
 
         default:
-          validationResult = { success: true };
+          errorResult = { success: true };
       }
     } catch (err) {
-      error = err;
+      errorMsg = err.message;
+      errorLine = 1;
+      fixSuggest = "Terjadi error saat analisis kode.";
     }
 
-    // Hapus pesan loading
+    // Hapus loading
     await deleteLoading();
 
     // Kirim hasil
-    if (validationResult?.success) {
+    const fileInfo = isFile ? `📄 File: ${fileName}` : `📝 Kode: ${fileName}`;
+    const langDisplay = {
+      javascript: "JavaScript",
+      python: "Python",
+      html: "HTML",
+      json: "JSON"
+    }[language] || language;
+
+    if (errorResult?.success) {
       // Tidak ada error
-      const fileInfo = isFile ? "📄 *File*" : "📝 *Kode*";
-      return ctx.reply(
-        `✅ *${fileInfo} ${language.toUpperCase()} Aman!*\n` +
-        `✨ *Tidak ditemukan error* pada kode ${language} Anda.\n` +
-        `🔍 *Status:* ✅ Aman dan valid`,
-        { parse_mode: "Markdown" }
-      );
-    } else if (error) {
-      // Ada error
-      const lines = text.split("\n");
-      const line = error.loc?.line || 1;
-      const column = error.loc?.column || 1;
+      const successMsg = `
+✅ TIDAK ADA ERROR
+───────────────────────────
+📌 Language:
+\`\`\`js 
+${langDisplay}\`\`\`
 
-      const start = Math.max(0, line - 3);
-      const end = Math.min(lines.length, line + 2);
+✨ Hasil Analisis:
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Tidak ditemukan error pada kode
+✅ Sintaks valid
+✅ Struktur kode aman
 
-      const snippet = lines.slice(start, end).map((l, i) => {
-        const num = start + i + 1;
-        return num === line
-          ? `👉 \`${num}\` | ${l}`
-          : `   \`${num}\` | ${l}`;
-      }).join("\n");
+───────────────────────────
+✅ Kode AMAN! 🚀`;
 
-      const fileInfo = isFile ? "📄 *File*" : "📝 *Kode*";
+      return ctx.reply(successMsg, { parse_mode: "Markdown" });
       
-      return ctx.reply(
-        `❌ *${fileInfo} ${language.toUpperCase()} Mengandung Error!*\n\n` +
-        `*Error:* ${error.message}\n` +
-        `*Lokasi:* Line ${line}, Column ${column}\n\n` +
-        `📌 *Cuplikan Kode:*\n\`\`\`\n${snippet}\n\`\`\``,
-        { parse_mode: "Markdown" }
-      );
+    } else {
+      // Ada error
+      let errorMsgClean = errorMsg || "Tidak terdeteksi";
+      let annotatedClean = annotated || code;
+
+      // Batasi panjang annotated
+      const annotatedLines = annotatedClean.split("\n");
+      if (annotatedLines.length > 20) {
+        const start = Math.max(0, errorLine ? errorLine - 8 : 0);
+        const end = Math.min(annotatedLines.length, errorLine ? errorLine + 8 : 20);
+        annotatedClean = annotatedLines.slice(start, end).join("\n");
+        annotatedClean = `... (menampilkan baris ${start + 1}-${end})\n${annotatedClean}`;
+      }
+
+      const errorMsg2 = `
+ERROR DITEMUKAN
+───────────────────────────
+📋 Error Awal:
+\`\`\`js
+${errorMsgClean}\`\`\`
+
+📍 Baris Error:
+\`\`\`js
+${errorLine ? `Baris ke-${errorLine}${errorCol ? `, Kolom ${errorCol}` : ""}` : "Tidak terdeteksi"}\`\`\`
+
+💡 Saran Perbaikan:
+\`\`\`js
+${fixSuggest || "Periksa sintaks dan logika kode"}\`\`\`
+
+───────────────────────────
+📌 Cuplikan Kode:
+\`\`\`js
+${annotatedClean}\`\`\`
+
+───────────────────────────`;
+
+      // Jika pesan terlalu panjang, kirim sebagai file
+      if (errorMsg2.length > 4000) {
+        const txtFile = path.join(__dirname, `analisis-error-${Date.now()}.txt`);
+        fs.writeFileSync(txtFile, errorMsg2);
+        await ctx.replyWithDocument(
+          { source: txtFile, filename: "analisis-error.txt" },
+          { caption: `📄 Hasil analisis error (${langDisplay})` }
+        );
+        fs.unlinkSync(txtFile);
+      } else {
+        return ctx.reply(errorMsg2, { parse_mode: "Markdown" });
+      }
     }
 
   } catch (e) {
-    console.error("Error in cekcode command:", e);
+    console.error("Error cekfunc command:", e);
     return ctx.reply(
-      "❌ *Terjadi error saat mengecek code.*\n" +
-      "Pastikan kode yang Anda kirimkan valid.",
+      `\`\`\`js
+❌ Terjadi error saat mengecek code.
+${e.message || "Unknown error"}\`\`\``,
       { parse_mode: "Markdown" }
     );
   }
