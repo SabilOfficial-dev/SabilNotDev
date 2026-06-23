@@ -945,11 +945,11 @@ async function sendEncryptProgress(ctx, waitMsg, modeName) {
         { percent: 100, text: `  ✅ File berhasil diencrypt! (${modeName})`, delay: 500 }
     ];
     for (const step of steps) {
-        const barLength = 10;
+        const barLength = 11;
         const filled = Math.round((step.percent / 100) * barLength);
-        const bar = '▰'.repeat(filled) + '▱'.repeat(barLength - filled);
+        const bar = '▓'.repeat(filled) + '░'.repeat(barLength - filled);
         await ctx.telegram.editMessageText(waitMsg.chat.id, waitMsg.message_id, undefined, `\`\`\`js
-   ✅ Encrypt Berjalan\n${step.text}\n${bar} ${step.percent}%\`\`\``, { parse_mode: 'Markdown' });
+   ✅ Encrypt Berjalan\n ${step.text}\n ${bar} ${step.percent}%\`\`\``, { parse_mode: 'Markdown' });
         await new Promise(resolve => setTimeout(resolve, step.delay));
     }
 }
@@ -1051,10 +1051,11 @@ async function processObfuscate(
 
     const waitMsg =
         await ctx.reply(
-            `<pre>▰▱▱▱▱▱▱▱▱▱ 10%</pre>
-⚙️ Memulai Obfuscation: ${modeName}`,
+            `\`\`\`js
+▓▓░░░░░░░░░ 10%
+⚙️ Memulai Obfuscation: ${modeName}\`\`\``,
             {
-                parse_mode: "HTML"
+                parse_mode: "Markdown"
             }
         )
 
@@ -2003,8 +2004,9 @@ bot.command("cekfunc", async (ctx) => {
         code = await downloadTgFile(ctx.telegram, replied.document.file_id);
       } catch (e) {
         return ctx.reply(
-          `\`\`\`js
+          `
 ❌ Gagal download file:
+\`\`\`js
 ${e.message}\`\`\``,
           { parse_mode: "Markdown" }
         );
@@ -2090,10 +2092,11 @@ ${e.message}\`\`\``,
           } catch {
             await deleteLoading();
             return ctx.reply(
-              `\`\`\`js
-❌ Module acorn belum terinstall.
+              `
+❌ *Module acorn belum terinstall.*
 
-Install dengan:
+*Install dengan:*
+\`\`\`js
 npm install acorn\`\`\``,
               { parse_mode: "Markdown" }
             );
@@ -2308,17 +2311,18 @@ npm install acorn\`\`\``,
 ✅ TIDAK ADA ERROR
 ───────────────────────────
 📌 Language:
-\`\`\`js 
+\`\`\`
 ${langDisplay}\`\`\`
 
 ✨ Hasil Analisis:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅ Tidak ditemukan error pada kode
-✅ Sintaks valid
-✅ Struktur kode aman
+\`\`\`ja
+☑︎ Tidak ditemukan error pada kode
+☑︎ Sintaks valid
+☑︎ Struktur kode aman\`\`\`
 
 ───────────────────────────
-✅ Kode AMAN! 🚀`;
+☑︎ Kode AMAN! 🚀`;
 
       return ctx.reply(successMsg, { parse_mode: "Markdown" });
       
@@ -2339,7 +2343,7 @@ ${langDisplay}\`\`\`
       const errorMsg2 = `
 ERROR DITEMUKAN
 ───────────────────────────
-📋 Error Awal:
+📋 Error:
 \`\`\`js
 ${errorMsgClean}\`\`\`
 
@@ -2375,8 +2379,9 @@ ${annotatedClean}\`\`\`
   } catch (e) {
     console.error("Error cekfunc command:", e);
     return ctx.reply(
-      `\`\`\`js
+      `
 ❌ Terjadi error saat mengecek code.
+\`\`\`js
 ${e.message || "Unknown error"}\`\`\``,
       { parse_mode: "Markdown" }
     );
@@ -2743,7 +2748,7 @@ bot.command("broadcast", async (ctx) => {
 
     const waitMsg =
         await ctx.reply(
-`<pre>▱▱▱▱▱▱▱▱▱▱▱ 0%</pre>
+`<pre>░░░░░░░░░░░0%</pre>
 Memulai Broadcast...`,
             {
                 parse_mode: "HTML"
@@ -2797,10 +2802,10 @@ Memulai Broadcast...`,
             )
 
         const bar =
-            "▰".repeat(
+            "▓".repeat(
                 filled
             ) +
-            "▱".repeat(
+            "░".repeat(
                 barLength -
                 filled
             )
@@ -3187,18 +3192,9 @@ bot.command("cekerror", async (ctx) => {
 
         return ctx.reply(
 `
-<b>Cara Pakai</b>
-
-Reply kode atau file:
-
-• .js
-• .json
-• .html
-• .py
-
-Lalu ketik:
-
-<code>/cekerror</code>
+<blockquote><b>Cara Pakai</b>
+Reply kode atau file
+Lalu ketik : <code>/cekerror</code></blockquote>
 `,
             {
                 parse_mode: "HTML"
@@ -3242,7 +3238,7 @@ Lalu ketik:
             return ctx.reply(
 `
 ✅ Tidak ditemukan error.
-📄 File : <code>${fileName}</code>
+📄 File : ${fileName}
 `,
                 {
                     parse_mode: "HTML",
@@ -3280,13 +3276,7 @@ Analisis File/Code Selesai
 
         if (result.length <= 3500) {
 
-            return ctx.reply(
-                `\`\`\`js
-                ${esc(result)}\`\`\``,
-                {
-                    parse_mode: "Markdown",
-                }
-            )
+            return ctx.reply(result, { parse_mode: "Markdown" });
 
         }
 
@@ -3444,16 +3434,20 @@ Atau reply ke file .js</blockquote>`,
   if (success) {
     await ctx.reply(`HASIL FIX ERROR — BERHASIL
 ───────────────────────────
-Error Awal : \`\`\`js
+Error Awal :
+\`\`\`js
 ${before.errorMsg || "—"}\`\`\`
 
-Baris      : \`\`\`js
+Baris      : 
+\`\`\`js
 ${before.errorLine ? `Baris ke-${before.errorLine}` : "Tidak terdeteksi"}\`\`\`
 
-Saran      : \`\`\`js
+Saran      :
+\`\`\`js
 ${before.fixSuggest || "—"}\`\`\`
 
-Fix        : \`\`\`js
+Fix        : 
+\`\`\`js
 ${fixNotes.join(" | ") || "Auto-fixed"}\`\`\`
 ───────────────────────────
 
@@ -3492,7 +3486,7 @@ ${result.fixSuggest}\`\`\`
 KODE + ANOTASI:
 \`\`\`js
 ${result.annotated}\`\`\`
-`, { parse_mode: "HTML" })
+`, { parse_mode: "Markdown" })
   }
 });
 
