@@ -957,118 +957,528 @@ async function sendEncryptProgress(ctx, waitMsg, modeName) {
 // ============================================================
 // ==================== FUNGSI ENKRIPSI ========================
 // ============================================================
-
-function randomHex(length = 40){
-  return crypto.randomBytes(length).toString("hex")
+function randomHex(length = 40) {
+    return crypto.randomBytes(Math.ceil(length / 2)).toString('hex').slice(0, length);
 }
 
-function randomName(list){
-  const extra=["ツ","々","〆","メ","ん","ฬ","刃","ฬ","幻","零","鬼","魔","神","龍","風","月","闇","死","星","空","海","火","水","地","天"]
-  return list[Math.floor(Math.random()*list.length)] +
-    extra[Math.floor(Math.random()*extra.length)] +
-    Math.floor(Math.random()*99999)
+function randomName(list) {
+    const extra = ["ツ", "々", "〆", "メ", "ん", "ฬ", "刃", "幻", "零", "鬼", "魔", "神", "龍", "風", "月", "闇", "死", "星", "空", "海", "火", "水", "地", "天", "無", "極", "滅", "絶", "獄", "冥", "虚", "沌"];
+    return list[Math.floor(Math.random() * list.length)] +
+        extra[Math.floor(Math.random() * extra.length)] +
+        Math.floor(Math.random() * 99999);
 }
 
-function chaosVars(total=500,names=[]){
-  let out=""
-  for(let i=0;i<total;i++){
-    out += `var ${randomName(names)}="${randomHex(80)}";\n`
-  }
-  return out
+function generateRandomArray(count = 400) {
+    const types = [
+        () => Math.floor(Math.random() * 4294967296),
+        () => Math.random() > 0.5 ? "true" : "false",
+        () => `"${randomHex(Math.floor(Math.random() * 30) + 5)}"`,
+        () => `"\\u${randomHex(4)}"`,
+        () => `"\\x${randomHex(2)}"`,
+        () => `"${["Invalid", "undefined", "null", "function", "object", "string", "number", "boolean"][Math.floor(Math.random() * 8)]}"`,
+        () => Math.random() > 0.5 ? "null" : "undefined",
+        () => Math.floor(Math.random() * 65536),
+        () => `"${String.fromCharCode(Math.floor(Math.random() * 65535))}"`,
+        () => `"${["byte", "index", "content", "message", "error", "reply", "update", "parse", "mode", "HTML", "markup", "text", "style", "success", "memory", "usage", "owner", "seller", "time", "now", "chat", "answer", "call", "show", "alert", "wait", "start", "join", "leave", "welcome", "goodbye"][Math.floor(Math.random() * 30)]}"`,
+        () => `"${["さくら", "つき", "ほし", "ゆき", "ねこ", "みず", "かぜ", "やみ", "そら", "れい", "むげん", "はな", "くろ", "しろ", "あか", "あお", "みどり", "きいろ", "むらさき", "だいだい"][Math.floor(Math.random() * 20)]}"`
+    ];
+
+    const elements = [];
+    for (let i = 0; i < count; i++) {
+        const type = types[Math.floor(Math.random() * types.length)];
+        elements.push(type());
+    }
+    return elements.join(',');
 }
 
-function makeB64Style(code,names,count=500){
-  const b64 = Buffer.from(code).toString("base64")
-  const funcName = randomName(names)
-  const varName = randomName(names)
+function generateSwitchCases(count = 50) {
+    let cases = [];
+    const operators = ["+", "-", "*", "/", "%", "&", "|", "^", "<<", ">>", ">>>"];
+    const comparisons = ["===", "!==", ">", "<", ">=", "<=", "==", "!="];
+    const names = ["temp", "val", "data", "res", "obj", "ctx", "env", "scope", "global", "result", "output", "input"];
 
-  return `(function(){${chaosVars(count,names)}function ${funcName}(){const ${varName}="${b64}";return Buffer.from(${varName},"base64").toString();}
-eval(${funcName}());
-})();`
+    for (let i = 0; i < count; i++) {
+        const caseVal = Math.floor(Math.random() * 500) - 200;
+        const hasReturn = Math.random() > 0.4;
+        const hasWith = Math.random() > 0.3;
+        const hasBreak = Math.random() > 0.5;
+        const hasIf = Math.random() > 0.4;
+        const hasNestedSwitch = Math.random() > 0.7;
+
+        let caseBlock = [`case ${caseVal}:`];
+
+        if (hasIf) {
+            const var1 = randomName(names);
+            const op = comparisons[Math.floor(Math.random() * comparisons.length)];
+            const val = Math.floor(Math.random() * 1000);
+            caseBlock.push(`if(${var1} ${op} ${val}){`);
+            caseBlock.push(`${randomName(["x", "y", "z", "a", "b", "c"])}=${randomName(["true", "false", "null", "undefined"])};`);
+            if (Math.random() > 0.5) {
+                caseBlock.push(`return ${randomName(["true", "false", "null", "undefined", "0", "1"])};`);
+            }
+            caseBlock.push(`break;`);
+            caseBlock.push(`}`);
+        }
+
+        if (hasWith) {
+            const objName = randomName(["obj", "ctx", "scope", "env", "global"]);
+            caseBlock.push(`with(${objName}["${randomHex(8)}"]||${objName}){`);
+            caseBlock.push(`${randomName(["temp", "val"])}=${randomName(["true", "false", "null", "undefined"])};`);
+            if (Math.random() > 0.5) {
+                caseBlock.push(`return ${randomName(["true", "false", "null", "undefined", "0", "1"])};`);
+            }
+            caseBlock.push(`break;`);
+            caseBlock.push(`}`);
+        }
+
+        if (hasNestedSwitch) {
+            const nestedVar = randomName(["x", "y", "z"]);
+            caseBlock.push(`switch(${nestedVar}){`);
+            for (let j = 0; j < 5; j++) {
+                const nVal = Math.floor(Math.random() * 100) - 50;
+                caseBlock.push(`case ${nVal}:`);
+                caseBlock.push(`${randomName(["temp", "val"])}=${randomName(["true", "false", "null", "undefined"])};`);
+                caseBlock.push(`break;`);
+            }
+            caseBlock.push(`default: ${randomName(["temp", "val"])}=${randomName(["true", "false", "null", "undefined"])};`);
+            caseBlock.push(`}`);
+        }
+
+        if (hasReturn) {
+            const returnVal = Math.random() > 0.5 ?
+                `"${randomHex(20)}"` :
+                `${randomName(["true", "false", "null", "undefined", "0", "1", "Math.PI", "Math.E"])}`;
+            caseBlock.push(`return ${returnVal};`);
+        }
+
+        if (hasBreak && !hasReturn) {
+            caseBlock.push(`break;`);
+        }
+
+        // Tambahkan encoded string check
+        if (Math.random() > 0.8) {
+            caseBlock.push(`if(!("${randomHex(6)}" in ${randomName(["obj", "ctx"])}) && "${randomHex(6)}" in ${randomName(["global", "window"])}){`);
+            caseBlock.push(`${randomName(["x", "y", "z"])}=${randomName(["true", "false"])};`);
+            caseBlock.push(`}`);
+        }
+
+        // Tambahkan anonymous function
+        if (Math.random() > 0.6) {
+            caseBlock.push(`(function(){${randomName(["x", "y", "z"])}=${randomName(["true", "false", "null", "undefined"])};})();`);
+        }
+
+        cases.push(caseBlock.join('\n'));
+    }
+
+    cases.push(`default: return ${randomName(["true", "false", "null", "undefined", "0", "1"])};`);
+
+    return cases.join('\n');
 }
 
-function artilleryStyle(code){
-  return makeB64Style(code,["つき","さくら","ほし","ゆき","ねこ","みず","かぜ","やみ"],600)
+function generateNestedFunctions(depth = 4) {
+    let result = '';
+    const names = ["くみにに", "ほえめさとす", "おゆこし", "けたよえしふ", "めすりねひ", "ねわそよて",
+        "れけにせ", "とふめそんと", "こおんさもか", "とへえ", "ぬとれらゆよ", "ちもぬうきこ",
+        "にろみれり", "すあほやみね", "たむねと", "ゆけぬゆ", "けわふてあり", "そにし",
+        "をてさみへ", "もにむか", "あひきせる", "さをほせ", "みかたる", "ぬまなもなく",
+        "らのおんほ", "をけなわみ", "むすなぬう", "めいのこ", "るけぬ", "いうによね",
+        "こんらに", "せそちひ", "ぬよむよ", "ろよいぬ", "えへちぬ", "たよさふも"
+    ];
+
+    for (let d = 0; d < depth; d++) {
+        const funcName = randomName(names);
+        const paramCount = Math.floor(Math.random() * 5) + 2;
+        const params = [];
+        for (let p = 0; p < paramCount; p++) {
+            params.push(randomName(names));
+        }
+
+        const isGenerator = Math.random() > 0.4;
+        const funcKeyword = isGenerator ? 'function*' : 'function';
+        const hasReturn = Math.random() > 0.3;
+
+        result += `${funcKeyword} ${funcName}(${params.join(',')}){\n`;
+
+        // Random var declarations
+        for (let i = 0; i < 10; i++) {
+            const varName = randomName(names);
+            const val = Math.random() > 0.5 ?
+                `"${randomHex(20)}"` :
+                `${randomName(["true", "false", "null", "undefined", "0", "1", "Math.random()", "Date.now()"])}`;
+            result += `var ${varName}=${val};\n`;
+        }
+
+        // With block
+        if (Math.random() > 0.5) {
+            result += `with(${randomName(["obj", "ctx", "scope"])}["${randomHex(8)}"]||${randomName(["obj", "ctx", "scope"])}){\n`;
+            result += `${randomName(["x", "y", "z"])}=${randomName(["true", "false", "null", "undefined"])};\n`;
+            result += `}\n`;
+        }
+
+        // Switch cases
+        result += `switch(${randomName(["x", "y", "z", "a", "b", "c"])}){\n`;
+        result += generateSwitchCases(15);
+        result += `}\n`;
+
+        // If condition with encoded strings
+        if (Math.random() > 0.6) {
+            result += `if(!("${randomHex(6)}" in ${randomName(["obj", "ctx"])}) && "${randomHex(6)}" in ${randomName(["global", "window"])}){\n`;
+            result += `${randomName(["x", "y", "z"])}=${randomName(["true", "false"])};\n`;
+            result += `}\n`;
+        }
+
+        if (hasReturn) {
+            result += `return ${randomName(["true", "false", "null", "undefined", "0", "1", "Math.PI", "Math.E"])};\n`;
+        }
+
+        result += `}\n`;
+    }
+
+    return result;
 }
 
-function hardcoreStyle(code){
-  const names=["悪魔","闇","無限","崩壊","零","死神","幻","滅"]
-  const b64=Buffer.from(code).toString("base64")
-  const funcName=randomName(names)
-  const varName=randomName(names)
+function generateObjectWithGetters(count = 15) {
+    let result = '{';
+    const names = ["get", "set", "value", "data", "result", "status", "error", "message", "reply", "update",
+        "info", "config", "settings", "options", "params", "args", "input", "output", "temp", "cache"];
 
-  return `(function(){${chaosVars(1000,names)}
-setInterval(()=>{debugger},1)
+    for (let i = 0; i < count; i++) {
+        const propName = randomHex(8);
+        const getterName = randomName(names);
+        const hasGetter = Math.random() > 0.3;
+        const hasSetter = Math.random() > 0.5;
+
+        if (hasGetter) {
+            result += `get["${propName}"](){return ${randomName(["true", "false", "null", "undefined", "0", "1"])};},`;
+        }
+        if (hasSetter) {
+            result += `set["${propName}"](${randomName(["val", "data", "input"])}){${randomName(["this", "self", "ctx"])}[${randomName(["value", "data", "result"])}]=${randomName(["val", "data", "input"])};},`;
+        }
+        if (Math.random() > 0.5) {
+            result += `["${randomHex(6)}"](...${randomName(["args", "params", "data"])}){return ${randomName(["true", "false", "null", "undefined", "0", "1"])};},`;
+        }
+    }
+
+    result += '}';
+    return result;
+}
+
+function generateEncodedStrings(count = 30) {
+    let result = '';
+    const encodings = ['\\u', '\\x', '\\0'];
+    for (let i = 0; i < count; i++) {
+        const str = randomHex(Math.floor(Math.random() * 30) + 5);
+        let encoded = '';
+        for (const char of str) {
+            const encoding = encodings[Math.floor(Math.random() * encodings.length)];
+            encoded += encoding + char.charCodeAt(0).toString(16).padStart(4, '0');
+        }
+        result += `"${encoded}",`;
+    }
+    return result;
+}
+
+function generateChaosVars(total = 500, names = []) {
+    let out = "";
+    const usedNames = new Set();
+    for (let i = 0; i < total; i++) {
+        let name = randomName(names);
+        while (usedNames.has(name)) {
+            name = randomName(names);
+        }
+        usedNames.add(name);
+        const value = randomHex(40 + Math.floor(Math.random() * 80));
+        out += `var ${name}="${value}";\n`;
+    }
+    return out;
+}
+
+function generateWithBlocks(count = 15) {
+    let result = '';
+    const names = ["obj", "ctx", "scope", "env", "global", "window", "self", "this", "data", "config"];
+    for (let i = 0; i < count; i++) {
+        const objName = randomName(names);
+        const propName = randomHex(4);
+        result += `with(${objName}["${propName}"]||${objName}){\n`;
+        result += `${randomName(["temp", "val", "data", "res"])}=${randomName(["true", "false", "null", "undefined"])};\n`;
+        if (Math.random() > 0.5) {
+            result += `return ${randomName(["true", "false", "null", "undefined", "0", "1"])};\n`;
+        }
+        result += `}\n`;
+    }
+    return result;
+}
+
+// ==================== MAIN OBFUSCATION FUNCTIONS ====================
+
+function japanStyle(code) {
+    const jpNames = [
+        "くみにに", "ほえめさとす", "おゆこし", "けたよえしふ", "めすりねひ", "ねわそよて",
+        "れけにせ", "とふめそんと", "こおんさもか", "とへえ", "ぬとれらゆよ", "ちもぬうきこ",
+        "にろみれり", "すあほやみね", "たむねと", "ゆけぬゆ", "けわふてあり", "そにし",
+        "をてさみへ", "もにむか", "あひきせる", "さをほせ", "みかたる", "ぬまなもなく",
+        "らのおんほ", "をけなわみ", "むすなぬう", "めいのこ", "るけぬ", "いうによね",
+        "こんらに", "せそちひ", "ぬよむよ", "ろよいぬ", "えへちぬ", "たよさふも",
+        "ひきすらんき", "にかむのる", "ちそや", "ちえに", "ちしまつろ", "りはえ",
+        "よけや", "しらやつほせ", "ほぬれきや", "えはに", "よひはへめよ", "ももちおきま"
+    ];
+
+    const b64 = Buffer.from(code).toString('base64');
+    const mainFunc = randomName(jpNames);
+    const decoderFunc = randomName(jpNames);
+    const dataArray = randomName(jpNames);
+    const wrapperFunc = randomName(jpNames);
+    const constName = randomName(jpNames);
+
+    const arrayElements = generateRandomArray(350);
+    const nestedFuncs = generateNestedFunctions(5);
+    const switchCases = generateSwitchCases(50);
+    const objWithGetters = generateObjectWithGetters(15);
+    const encodedStrings = generateEncodedStrings(30);
+    const chaosVars = generateChaosVars(1500, jpNames);
+    const withBlocks = generateWithBlocks(20);
+
+    return `function ${mainFunc}(${randomName(jpNames)},${randomName(jpNames)}){for(var ${randomName(jpNames)}=0;${randomName(jpNames)}<${randomName(jpNames)};${randomName(jpNames)}++){${randomName(jpNames)}["\\u0070\\u0075\\u0073\\u0068"](${randomName(jpNames)}["\\u0073\\u0068\\u0069\\u0066\\u0074"]())}return ${randomName(jpNames)}}const ${dataArray}=[${arrayElements}];function ${decoderFunc}(){${chaosVars}${nestedFuncs}${withBlocks}switch(${randomName(jpNames)}){${switchCases}}${objWithGetters}}function ${randomName(jpNames)}(${randomName(jpNames)},${randomName(jpNames)}){${withBlocks}switch(${randomName(jpNames)}){${generateSwitchCases(30)}}}function ${randomName(jpNames)}(){}function ${randomName(jpNames)}(${randomName(jpNames)},${randomName(jpNames)}){function*${randomName(jpNames)}(${randomName(jpNames)},${randomName(jpNames)},${randomName(jpNames)},{["${randomHex(8)}"]:{}}){while(${randomName(jpNames)}+${randomName(jpNames)}+${randomName(jpNames)}!==${Math.floor(Math.random() * 300) + 100}){with(${randomName(jpNames)}["${randomHex(8)}"]||${randomName(jpNames)}){switch(${randomName(jpNames)}+${randomName(jpNames)}+${randomName(jpNames)}){${generateSwitchCases(40)}default:return undefined;${generateSwitchCases(20)}}}}}${generateObjectWithGetters(12)}eval(${decoderFunc}("${b64}"));
+`;
+}
+
+function hardcoreStyle(code) {
+    const names = ["悪魔", "闇", "無限", "崩壊", "零", "死神", "幻", "滅", "虚", "無", "天", "地", "人", "鬼", "神", "魔", "龍", "鳳", "虎", "狼", "獄", "冥", "絶", "極"];
+    const b64 = Buffer.from(code).toString('base64');
+    const funcName = randomName(names);
+    const varName = randomName(names);
+    const wrapper = randomName(names);
+    const chaosVars = generateChaosVars(2000, names);
+    const nestedFuncs = generateNestedFunctions(6);
+    const switchCases = generateSwitchCases(60);
+    const objGetters = generateObjectWithGetters(20);
+    const withBlocks = generateWithBlocks(30);
+    const encodedStrings = generateEncodedStrings(40);
+
+    return `(function(){${chaosVars}${nestedFuncs}${withBlocks}setInterval(()=>{${generateSwitchCases(15)}},${Math.floor(Math.random() * 100) + 1})
 console.clear()
-function ${funcName}(){const ${varName}="${b64}";return Buffer.from(${varName},"base64").toString();
+function ${funcName}(){ ${switchCases}${objGetters}const ${varName}="${b64}";${generateObjectWithGetters(10)}return Buffer.from(${varName},"base64").toString(); } ${withBlocks} eval(${funcName}());
+})();`;
+}
+
+function phantomStyle(code) {
+    const hex = Buffer.from(code).toString("hex");
+    const names = ["幻", "影", "霊", "鬼", "闇", "月", "花", "星", "風", "雲", "雷", "電", "光", "影", "夢", "幻", "虚", "空", "無", "極"];
+    const funcName = randomName(names);
+    const varName = randomName(names);
+    const chaosVars = generateChaosVars(800, names);
+    const nestedFuncs = generateNestedFunctions(3);
+    const switchCases = generateSwitchCases(30);
+    const withBlocks = generateWithBlocks(10);
+
+    return `(function(){ ${chaosVars} ${nestedFuncs} ${withBlocks} function ${funcName}(){ ${switchCases} ${withBlocks} return eval(Buffer.from("${hex}","hex").toString()); } ${funcName}();
+})();`;
+}
+
+function balancedStyle(code) {
+    const names = ["均衡", "静", "風", "月", "水", "火", "地", "天", "和", "平", "調", "和", "均", "衡", "安", "定"];
+    const b64 = Buffer.from(code).toString("base64");
+    const funcName = randomName(names);
+    const varName = randomName(names);
+    const chaosVars = generateChaosVars(500, names);
+    const nestedFuncs = generateNestedFunctions(3);
+    const switchCases = generateSwitchCases(25);
+    const withBlocks = generateWithBlocks(10);
+
+    return `(function(){ ${chaosVars} ${nestedFuncs} ${withBlocks} function ${funcName}(){ ${switchCases}
+const ${varName}="${b64}"; ${generateObjectWithGetters(8)} return Buffer.from(${varName},"base64").toString();
 }
 eval(${funcName}());
-})();`
+})();`;
 }
 
-function phantomStyle(code){
-  const hex=Buffer.from(code).toString("hex")
-  return `eval(Buffer.from("${hex}","hex").toString())`
+function reversedStyle(code) {
+    const rev = code.split("").reverse().join("");
+    const names = ["逆", "転", "反", "裏", "鏡", "映", "倒", "立", "回", "転", "反", "転", "逆", "行", "逆", "流"];
+    const funcName = randomName(names);
+    const varName = randomName(names);
+    const chaosVars = generateChaosVars(400, names);
+    const nestedFuncs = generateNestedFunctions(3);
+    const switchCases = generateSwitchCases(25);
+    const withBlocks = generateWithBlocks(8);
+
+    return `(function(){ ${chaosVars} ${nestedFuncs} ${withBlocks}
+function ${funcName}(){ ${switchCases} ${withBlocks} return eval("${rev}".split("").reverse().join(""));
+} ${funcName}();
+})();`;
 }
 
-function balancedStyle(code){
-  return makeB64Style(code,["均衡","静","風","月"],300)
+function rosemaryStyle(code) {
+    const names = ["薔薇", "深夜", "死", "夢", "闇", "月", "花", "棘", "刺", "香", "毒", "血", "涙", "静", "寂", "哀", "絶", "望"];
+    const b64 = Buffer.from(code).toString("base64");
+    const funcName = randomName(names);
+    const varName = randomName(names);
+    const chaosVars = generateChaosVars(1200, names);
+    const nestedFuncs = generateNestedFunctions(5);
+    const switchCases = generateSwitchCases(35);
+    const withBlocks = generateWithBlocks(15);
+    const objGetters = generateObjectWithGetters(12);
+
+    return `(function(){ ${chaosVars} ${nestedFuncs} ${withBlocks}
+function ${funcName}(){ ${switchCases} ${objGetters} const ${varName}="${b64}"; ${generateObjectWithGetters(8)} return Buffer.from(${varName},"base64").toString();
 }
-
-function reversedStyle(code){
-  const rev=code.split("").reverse().join("")
-  return `eval("${rev}".split("").reverse().join(""))`
-}
-
-function rosemaryStyle(code){
-  return makeB64Style(code,["薔薇","深夜","死","夢"],800)
-}
-
-function invisStyle(code){
-  const uni=escape(Buffer.from(code).toString("base64"))
-  return `eval(Buffer.from(unescape("${uni}"),"base64").toString())`
-}
-
-function japanStyle(code){
-  return makeB64Style(code,["つき","さくら","ほし","ねこ","そら","ゆき","みず","かぜ","れい","やみ","むげん","はな"],1500)
-}
-
-function arabStyle(code){
-  return makeB64Style(code,["سلام","قمر","نور","ليل","شمس","نار","روح","موت"],900)
-}
-
-function siuStyle(code){
-  return makeB64Style(code,["SIUU","RONALDO","GOAL","CR7"],600)
-}
-
-function nebulaStyle(code){
-  return makeB64Style(code,["星雲","宇宙","銀河","闇","ブラック","無限","ゼロ"],2500)
-}
-
-function varStyle(code){
-  return `(function(){${code}})();`
-}
-
-function customStyle(code,name){
-  const names=["改造","極限","混乱","破壊","地獄","暗黒","虚無"]
-  const b64=Buffer.from(code).toString("base64")
-  const funcName = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name) ? name : "CustomLoader"
-  const varName=randomName(names)
-
-  return `(function(){${chaosVars(1200,name)}
-function ${name}(){const ${varName}="${b64}";return Buffer.from(${varName},"base64").toString();}
 eval(${funcName}());
-})();`
+})();`;
 }
 
-function timeLockStyle(code,days){
-  const expired=Date.now()+(Number(days)*86400000)
-  const b64=Buffer.from(code).toString("base64")
+function invisStyle(code) {
+    const uni = escape(Buffer.from(code).toString("base64"));
+    const names = ["透", "明", "隠", "秘", "影", "像", "空", "気", "風", "霧", "霞", "幻", "虚", "無", "色", "消", "失"];
+    const funcName = randomName(names);
+    const varName = randomName(names);
+    const chaosVars = generateChaosVars(600, names);
+    const nestedFuncs = generateNestedFunctions(3);
+    const switchCases = generateSwitchCases(30);
+    const withBlocks = generateWithBlocks(12);
 
-  return `(function(){if(Date.now()>${expired}){console.log("Script Expired");process.exit();}
-eval(Buffer.from("${b64}","base64").toString());
-})();`
+    return `(function(){ ${chaosVars} ${nestedFuncs} ${withBlocks}
+function ${funcName}(){ ${switchCases} ${withBlocks} return eval(Buffer.from(unescape("${uni}"),"base64").toString());
 }
+${funcName}();
+})();`;
+}
+
+function arabStyle(code) {
+    const names = ["سلام", "قمر", "نور", "ليل", "شمس", "نار", "روح", "موت", "سماء", "أرض", "بحر", "ريح", "نار", "ظلام", "فجر", "غروب", "نجم", "كوكب"];
+    const b64 = Buffer.from(code).toString("base64");
+    const funcName = randomName(names);
+    const varName = randomName(names);
+    const chaosVars = generateChaosVars(900, names);
+    const nestedFuncs = generateNestedFunctions(4);
+    const switchCases = generateSwitchCases(35);
+    const withBlocks = generateWithBlocks(15);
+    const objGetters = generateObjectWithGetters(10);
+
+    return `(function(){ ${chaosVars} ${nestedFuncs} ${withBlocks}
+function ${funcName}(){ ${switchCases} ${objGetters}
+const ${varName}="${b64}"; ${generateObjectWithGetters(6)}
+return Buffer.from(${varName},"base64").toString();
+}
+eval(${funcName}());
+})();`;
+}
+
+function siuStyle(code) {
+    const names = ["SIUU", "RONALDO", "GOAL", "CR7", "MESSI", "NEYMAR", "MBAPPE", "BENZEMA", "MODRIC", "RONALDINHO", "BALE", "RAMOS", "PEPE", "CASILLAS"];
+    const b64 = Buffer.from(code).toString("base64");
+    const funcName = randomName(names);
+    const varName = randomName(names);
+    const chaosVars = generateChaosVars(600, names);
+    const nestedFuncs = generateNestedFunctions(3);
+    const switchCases = generateSwitchCases(25);
+    const withBlocks = generateWithBlocks(10);
+
+    return `(function(){ ${chaosVars} ${nestedFuncs} ${withBlocks} function ${funcName}(){
+${switchCases} ${withBlocks}
+const ${varName}="${b64}";
+${generateObjectWithGetters(6)} return Buffer.from(${varName},"base64").toString(); }
+eval(${funcName}());
+})();`;
+}
+
+function nebulaStyle(code) {
+    const names = ["星雲", "宇宙", "銀河", "闇", "ブラック", "無限", "ゼロ", "時空", "次元", "天体", "恒星", "惑星", "彗星", "星団", "超新星", "ブラックホール"];
+    const b64 = Buffer.from(code).toString("base64");
+    const funcName = randomName(names);
+    const varName = randomName(names);
+    const chaosVars = generateChaosVars(2500, names);
+    const nestedFuncs = generateNestedFunctions(6);
+    const switchCases = generateSwitchCases(50);
+    const withBlocks = generateWithBlocks(25);
+    const objGetters = generateObjectWithGetters(20);
+
+    return `(function(){ ${chaosVars} ${nestedFuncs} ${withBlocks}
+function ${funcName}(){ ${switchCases} ${objGetters} const ${varName}="${b64}"; ${generateObjectWithGetters(15)} return Buffer.from(${varName},"base64").toString();
+} eval(${funcName}());
+})();`;
+}
+
+function varStyle(code) {
+    const names = ["実行", "起動", "操作", "制御", "処理", "変換", "生成", "破壊", "創造", "終了", "開始", "停止", "変更", "更新", "削除", "追加"];
+    const funcName = randomName(names);
+    const varName = randomName(names);
+    const chaosVars = generateChaosVars(200, names);
+    const nestedFuncs = generateNestedFunctions(2);
+    const switchCases = generateSwitchCases(15);
+    const withBlocks = generateWithBlocks(5);
+
+    return `(function(){ ${chaosVars} ${nestedFuncs} ${withBlocks}
+function ${funcName}(){ ${switchCases} ${withBlocks} ${code}
+} ${funcName}();
+})();`;
+}
+
+function customStyle(code, name) {
+    const names = ["改造", "極限", "混乱", "破壊", "地獄", "暗黒", "虚無", "創生", "終焉", "絶望", "希望", "混沌", "秩序", "均衡", "無限", "永劫"];
+    const b64 = Buffer.from(code).toString("base64");
+    const funcName = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name) ? name : "CustomLoader";
+    const varName = randomName(names);
+    const chaosVars = generateChaosVars(1800, names);
+    const nestedFuncs = generateNestedFunctions(5);
+    const switchCases = generateSwitchCases(45);
+    const withBlocks = generateWithBlocks(20);
+    const objGetters = generateObjectWithGetters(15);
+
+    return `(function(){
+${chaosVars}
+${nestedFuncs}
+${withBlocks}
+function ${funcName}(){
+${switchCases} ${objGetters} const ${varName}="${b64}"; ${generateObjectWithGetters(10)} return Buffer from(${varName},"base64").toString();
+} eval(${funcName}());
+})();`;
+}
+    
+function timeLockStyle(code, days) {
+    const expired = Date.now() + (Number(days) * 86400000);
+    const b64 = Buffer.from(code).toString("base64");
+    const names = ["時", "限", "鎖", "刻", "永", "久", "瞬", "間", "光", "陰", "流", "転", "過", "去", "未", "来", "現", "在"];
+    const funcName = randomName(names);
+    const varName = randomName(names);
+    const chaosVars = generateChaosVars(500, names);
+    const nestedFuncs = generateNestedFunctions(3);
+    const switchCases = generateSwitchCases(25);
+    const withBlocks = generateWithBlocks(10);
+
+    return `(function(){ ${chaosVars} ${nestedFuncs} ${withBlocks}
+function ${funcName}(){ ${switchCases} ${withBlocks} if(Date.now()>${expired}){ ${generateSwitchCases(10)}
+console.log("${randomHex(30)}");
+process.exit();
+} ${generateSwitchCases(15)} eval(Buffer.from("${b64}","base64").toString());
+} ${funcName}();
+})();`;
+}
+
+// ==================== EKSPOR ====================
+module.exports = {
+    japanStyle,
+    hardcoreStyle,
+    phantomStyle,
+    balancedStyle,
+    reversedStyle,
+    rosemaryStyle,
+    invisStyle,
+    arabStyle,
+    siuStyle,
+    nebulaStyle,
+    varStyle,
+    customStyle,
+    timeLockStyle,
+    randomHex,
+    randomName,
+    generateChaosVars,
+    generateSwitchCases,
+    generateRandomArray,
+    generateNestedFunctions,
+    generateObjectWithGetters,
+    generateEncodedStrings,
+    generateWithBlocks
+};
 
 // ============================================================
 // ==================== KACUNG PRIME ===========================
