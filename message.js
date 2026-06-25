@@ -100,11 +100,6 @@ const config = require('./config');
 const updater = require("./updater");
 const updateLink = require("./updatelink");
 
-// =============================
-// BASE DIRECTORY
-// =============================
-const BASE_DIR = __dirname;
-
 console.clear()
 console.log(chalk.green(`
 █▀ ▀█▀ ▄▀█ █▀█ ▀█▀
@@ -1488,619 +1483,495 @@ untuk menampilkan menu owner.</blockquote>
 
 // Fixed helper functions
 
-function randomHex(length = 40){
+function randomHex(length = 40) {
   return crypto.randomBytes(length).toString("hex")
 }
 
-function randomName(list){
-  const extra=["ツ","々","〆","メ","ん","ฬ","刃","ฬ"]
-  return list[Math.floor(Math.random()*list.length)] +
-    extra[Math.floor(Math.random()*extra.length)] +
-    Math.floor(Math.random()*99999)
+function randomName(list) {
+  const extra = ["ツ", "々", "〆", "メ", "ん", "ฬ", "刃", "ฬ"]
+  return (
+    list[Math.floor(Math.random() * list.length)] +
+    extra[Math.floor(Math.random() * extra.length)] +
+    Math.floor(Math.random() * 99999)
+  )
 }
 
-function chaosVars(total=500,names=[]){
-  let out=""
-  for(let i=0;i<total;i++){
+/** Build a flat const array of obfuscated strings/values, returns [arrayName, arrayCode] */
+function buildConstArray(arrayName, strings) {
+  const items = strings.map((s) => {
+    if (typeof s === "string") {
+      // encode each char as unicode escape
+      return (
+        '"' +
+        s
+          .split("")
+          .map((c) =>
+            Math.random() > 0.5
+              ? "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0")
+              : "\\x" + c.charCodeAt(0).toString(16).padStart(2, "0")
+          )
+          .join("") +
+        '"'
+      )
+    }
+    return JSON.stringify(s)
+  })
+  return `const ${arrayName}=[${items.join(",")}]`
+}
+
+/** Wrap a string so every char is a unicode/hex escape */
+function escStr(s) {
+  return s
+    .split("")
+    .map((c) =>
+      Math.random() > 0.5
+        ? "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0")
+        : "\\x" + c.charCodeAt(0).toString(16).padStart(2, "0")
+    )
+    .join("")
+}
+
+/** Generate `count` junk var declarations using names from `names` */
+function chaosVars(total = 500, names = []) {
+  let out = ""
+  for (let i = 0; i < total; i++) {
     out += `var ${randomName(names)}="${randomHex(80)}";\n`
   }
   return out
 }
 
-function makeB64Style(code,names,count=500){
+// ─── japan-style  (Japanese hiragana variable names + flat const array) ──────
+
+function japanStyle(code) {
+  const kana = "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん"
+  const pick = () => {
+    let s = ""
+    for (let i = 0; i < 5 + Math.floor(Math.random() * 4); i++)
+      s += kana[Math.floor(Math.random() * kana.length)]
+    return s
+  }
+
+  const arrName = pick()
+  const fnShift = pick()
+  const fnMain = pick()
+  const varB64 = pick()
+
+  const strings = [
+    "push",
+    "shift",
+    "from",
+    "base64",
+    "toString",
+    "eval",
+    ...Array.from({ length: 40 }, () => randomHex(4)),
+  ]
+
+  const arrayCode = buildConstArray(arrName, strings)
   const b64 = Buffer.from(code).toString("base64")
-  const funcName = randomName(names)
-  const varName = randomName(names)
 
-  return `(function(){
-${chaosVars(count,names)}
-function ${funcName}(){
-const ${varName}="${b64}";
-return Buffer.from(${varName},"base64").toString();
+  return `function ${fnShift}(${fnShift},${arrName}){for(var ${varB64}=0;${varB64}<${arrName};${varB64}++){${fnShift}["${escStr("push")}"](${fnShift}["${escStr("shift")}"]())}return ${fnShift}}
+${arrayCode}
+${chaosVars(1500, Array.from({ length: 30 }, pick))}
+;(function(){
+function ${fnMain}(){
+const ${varB64}="${b64}";
+return Buffer["${escStr("from")}"](${varB64},"${escStr("base64")}")["${escStr("toString")}"]();
 }
-eval(${funcName}());
+eval(${fnMain}());
 })();`
 }
 
-function artilleryStyle(code){
-  return makeB64Style(code,["つき","さくら","ほし","ゆき","ねこ","みず","かぜ","やみ"],600)
+// ─── arab-style  (Arabic variable names + flat const array) ──────────────────
+
+function arabStyle(code) {
+  const arabic = ["سلام", "قمر", "نور", "ليل", "شمس", "نار", "روح", "موت", "نجم", "بحر"]
+  const pick = () =>
+    arabic[Math.floor(Math.random() * arabic.length)] +
+    Math.floor(Math.random() * 9999)
+
+  const arrName = pick()
+  const fnShift = pick()
+  const fnMain = pick()
+  const varB64 = pick()
+
+  const strings = [
+    "push",
+    "shift",
+    "from",
+    "base64",
+    "toString",
+    "eval",
+    ...Array.from({ length: 40 }, () => randomHex(4)),
+  ]
+
+  const arrayCode = buildConstArray(arrName, strings)
+  const b64 = Buffer.from(code).toString("base64")
+
+  return `function ${fnShift}(${fnShift},${arrName}){for(var ${varB64}=0;${varB64}<${arrName};${varB64}++){${fnShift}["${escStr("push")}"](${fnShift}["${escStr("shift")}"]())}return ${fnShift}}
+${arrayCode}
+${chaosVars(900, Array.from({ length: 20 }, pick))}
+;(function(){
+function ${fnMain}(){
+const ${varB64}="${b64}";
+return Buffer["${escStr("from")}"](${varB64},"${escStr("base64")}")["${escStr("toString")}"]();
+}
+eval(${fnMain}());
+})();`
 }
 
-function hardcoreStyle(code){
-  const names=["悪魔","闇","無限","崩壊","零","死神","幻","滅"]
-  const b64=Buffer.from(code).toString("base64")
-  const funcName=randomName(names)
-  const varName=randomName(names)
+// ─── balanced-style  (mixed Japanese names, moderate chaos) ──────────────────
 
-  return `(function(){
-${chaosVars(1000,names)}
+function balancedStyle(code) {
+  const names = ["均衡", "静", "風", "月", "光", "水", "火", "土"]
+  const pick = () =>
+    names[Math.floor(Math.random() * names.length)] +
+    ["ツ", "々", "〆", "ฬ"][Math.floor(Math.random() * 4)] +
+    Math.floor(Math.random() * 9999)
+
+  const arrName = pick()
+  const fnShift = pick()
+  const fnMain = pick()
+  const varB64 = pick()
+
+  const strings = [
+    "push", "shift", "from", "base64", "toString",
+    ...Array.from({ length: 20 }, () => randomHex(4)),
+  ]
+
+  const arrayCode = buildConstArray(arrName, strings)
+  const b64 = Buffer.from(code).toString("base64")
+
+  return `function ${fnShift}(${fnShift},${arrName}){for(var ${varB64}=0;${varB64}<${arrName};${varB64}++){${fnShift}["${escStr("push")}"](${fnShift}["${escStr("shift")}"]())}return ${fnShift}}
+${arrayCode}
+${chaosVars(300, Array.from({ length: 15 }, pick))}
+;(function(){
+function ${fnMain}(){
+const ${varB64}="${b64}";
+return Buffer["${escStr("from")}"](${varB64},"${escStr("base64")}")["${escStr("toString")}"]();
+}
+eval(${fnMain}());
+})();`
+}
+
+// ─── hardcore-style  (kanji names + debugger trap + heavy chaos) ──────────────
+
+function hardcoreStyle(code) {
+  const names = ["悪魔", "闇", "無限", "崩壊", "零", "死神", "幻", "滅"]
+  const pick = () =>
+    names[Math.floor(Math.random() * names.length)] +
+    ["ツ", "々", "ฬ", "刃"][Math.floor(Math.random() * 4)] +
+    Math.floor(Math.random() * 99999)
+
+  const arrName = pick()
+  const fnShift = pick()
+  const fnMain = pick()
+  const varB64 = pick()
+
+  const strings = [
+    "push", "shift", "from", "base64", "toString",
+    ...Array.from({ length: 50 }, () => randomHex(4)),
+  ]
+
+  const arrayCode = buildConstArray(arrName, strings)
+  const b64 = Buffer.from(code).toString("base64")
+
+  return `function ${fnShift}(${fnShift},${arrName}){for(var ${varB64}=0;${varB64}<${arrName};${varB64}++){${fnShift}["${escStr("push")}"](${fnShift}["${escStr("shift")}"]())}return ${fnShift}}
+${arrayCode}
+${chaosVars(1000, Array.from({ length: 30 }, pick))}
+;(function(){
 setInterval(()=>{debugger},1)
-console.clear()
-function ${funcName}(){
-const ${varName}="${b64}";
-return Buffer.from(${varName},"base64").toString();
+console["${escStr("clear")}"]()
+function ${fnMain}(){
+const ${varB64}="${b64}";
+return Buffer["${escStr("from")}"](${varB64},"${escStr("base64")}")["${escStr("toString")}"]();
 }
-eval(${funcName}());
+eval(${fnMain}());
 })();`
 }
 
-function phantomStyle(code){
-  const hex=Buffer.from(code).toString("hex")
-  return `eval(Buffer.from("${hex}","hex").toString())`
+// ─── phantom-style  (hex encoded, no variable name noise) ────────────────────
+
+function phantomStyle(code) {
+  const hex = Buffer.from(code).toString("hex")
+  const bufFrom = escStr("from")
+  const bufHex  = escStr("hex")
+  const bufTS   = escStr("toString")
+  return `eval(Buffer["${bufFrom}"]("${hex}","${bufHex}")["${bufTS}"]())`
 }
 
-function balancedStyle(code){
-  return makeB64Style(code,["均衡","静","風","月"],300)
-}
+// ─── artillery-style  (Japanese names, very heavy chaos 600) ─────────────────
 
-function reversedStyle(code){
-  const rev=code.split("").reverse().join("")
-  return `eval("${rev}".split("").reverse().join(""))`
-}
+function artilleryStyle(code) {
+  const names = ["つき", "さくら", "ほし", "ゆき", "ねこ", "みず", "かぜ", "やみ"]
+  const pick = () =>
+    names[Math.floor(Math.random() * names.length)] +
+    ["ツ", "々", "ฬ", "ん"][Math.floor(Math.random() * 4)] +
+    Math.floor(Math.random() * 99999)
 
-function rosemaryStyle(code){
-  return makeB64Style(code,["薔薇","深夜","死","夢"],800)
-}
+  const arrName = pick()
+  const fnShift = pick()
+  const fnMain = pick()
+  const varB64 = pick()
 
-function invisStyle(code){
-  const uni=escape(Buffer.from(code).toString("base64"))
-  return `eval(Buffer.from(unescape("${uni}"),"base64").toString())`
-}
+  const strings = [
+    "push", "shift", "from", "base64", "toString",
+    ...Array.from({ length: 50 }, () => randomHex(4)),
+  ]
 
-function japanStyle(code){
-  return makeB64Style(code,["つき","さくら","ほし","ねこ","そら","ゆき","みず","かぜ","れい","やみ","むげん","はな"],1500)
-}
+  const arrayCode = buildConstArray(arrName, strings)
+  const b64 = Buffer.from(code).toString("base64")
 
-function arabStyle(code){
-  return makeB64Style(code,["سلام","قمر","نور","ليل","شمس","نار","روح","موت"],900)
+  return `function ${fnShift}(${fnShift},${arrName}){for(var ${varB64}=0;${varB64}<${arrName};${varB64}++){${fnShift}["${escStr("push")}"](${fnShift}["${escStr("shift")}"]())}return ${fnShift}}
+${arrayCode}
+${chaosVars(600, Array.from({ length: 25 }, pick))}
+;(function(){
+function ${fnMain}(){
+const ${varB64}="${b64}";
+return Buffer["${escStr("from")}"](${varB64},"${escStr("base64")}")["${escStr("toString")}"]();
 }
-
-function siuStyle(code){
-  return makeB64Style(code,["SIUU","RONALDO","GOAL","CR7"],600)
-}
-
-function nebulaStyle(code){
-  return makeB64Style(code,["星雲","宇宙","銀河","闇","ブラック","無限","ゼロ"],2500)
-}
-
-function varStyle(code){
-  return `(function(){${code}})();`
-}
-
-function customStyle(code,name){
-  const names=["改造","極限","混乱","破壊","地獄","暗黒","虚無"]
-  const b64=Buffer.from(code).toString("base64")
-  const funcName = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name) ? name : "CustomLoader"
-  const varName=randomName(names)
-
-  return `(function(){
-${chaosVars(1200,names)}
-function ${name}(){
-const ${varName}="${b64}";
-return Buffer.from(${varName},"base64").toString();
-}
-eval(${funcName}());
+eval(${fnMain}());
 })();`
 }
 
-function timeLockStyle(code,days){
-  const expired=Date.now()+(Number(days)*86400000)
-  const b64=Buffer.from(code).toString("base64")
+// ─── siu-style  (CR7 / football names) ───────────────────────────────────────
 
-  return `(function(){
-if(Date.now()>${expired}){
-console.log("Script Expired");
-process.exit();
+function siuStyle(code) {
+  const names = ["SIUU", "RONALDO", "GOAL", "CR7", "BALLON", "DRIBBLE", "PENALTY"]
+  const pick = () =>
+    names[Math.floor(Math.random() * names.length)] +
+    "_" +
+    Math.floor(Math.random() * 99999)
+
+  const arrName = pick()
+  const fnShift = pick()
+  const fnMain = pick()
+  const varB64 = pick()
+
+  const strings = [
+    "push", "shift", "from", "base64", "toString",
+    ...Array.from({ length: 40 }, () => randomHex(4)),
+  ]
+
+  const arrayCode = buildConstArray(arrName, strings)
+  const b64 = Buffer.from(code).toString("base64")
+
+  return `function ${fnShift}(${fnShift},${arrName}){for(var ${varB64}=0;${varB64}<${arrName};${varB64}++){${fnShift}["${escStr("push")}"](${fnShift}["${escStr("shift")}"]())}return ${fnShift}}
+${arrayCode}
+${chaosVars(600, Array.from({ length: 20 }, pick))}
+;(function(){
+function ${fnMain}(){
+const ${varB64}="${b64}";
+return Buffer["${escStr("from")}"](${varB64},"${escStr("base64")}")["${escStr("toString")}"]();
 }
-eval(Buffer.from("${b64}","base64").toString());
+eval(${fnMain}());
 })();`
 }
 
-// ============================================================
-// SUPER COMPLEX OBFUSCATION ENGINE - ULTIMATE PROTECTION
-// ============================================================
+// ─── reversed-style  (reverse the source, eval on decode) ────────────────────
 
-/**
- * ULTIMATE OBFUSCATOR - Menggabungkan 15+ teknik obfuscation
- * - Multi-layer encoding (base64, hex, reverse, URI, binary)
- * - Random code injection dengan variabel chaos
- * - Anti-debug & anti-tamper protection
- * - Polymorphic code generation
- * - Control flow obfuscation
- * - String encryption dengan multiple keys
- * - Self-modifying code
- * - Time-based expiration
- * - Domain/device locking
- * - And many more...
- */
-
-// ============================================================
-// CORE ENGINE
-// ============================================================
-
-const _ultraRandom = (len = 40) => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?/~`';
-    let result = '';
-    for (let i = 0; i < len; i++) {
-        result += chars[Math.floor(Math.random() * chars.length)];
-    }
-    return result;
-};
-
-const _ultraName = (list) => {
-    const extra = [
-        'ツ','々','〆','メ','ん','ฬ','刃','丿','卍','卐','꧁','꧂','༄','༅','༆','༇','༈','༉',
-        '★','☆','✧','✦','✶','✷','✸','✹','✺','✻','✼','✽','✾','✿','❀','❁','❂','❃',
-        '⚡','🔥','💀','👻','🎯','🎪','🎨','🎭','🎯','🎰','🎲','🎳','🎴','🎵','🎶','🎷',
-        'α','β','γ','δ','ε','ζ','η','θ','ι','κ','λ','μ','ν','ξ','ο','π','ρ','σ','τ','υ','φ','χ','ψ','ω'
-    ];
-    return list[Math.floor(Math.random() * list.length)] +
-        extra[Math.floor(Math.random() * extra.length)] +
-        Math.floor(Math.random() * 999999) +
-        String.fromCharCode(Math.floor(Math.random() * 26) + 97) +
-        Math.floor(Math.random() * 9999);
-};
-
-// --- Generate Chaos Variables dengan Multiple Types ---
-const _ultraChaos = (total = 1500, names = []) => {
-    let out = '';
-    const types = ['var', 'let', 'const'];
-    const values = [
-        () => `"${_ultraRandom(50)}"`,
-        () => Math.floor(Math.random() * 999999999),
-        () => Math.random() > 0.5 ? 'true' : 'false',
-        () => `"${Buffer.from(_ultraRandom(30)).toString('base64')}"`,
-        () => `"\\x${_ultraRandom(4)}"`,
-        () => `"\\u${_ultraRandom(4)}"`,
-        () => `"${Array.from({length: 10}, () => String.fromCharCode(Math.floor(Math.random() * 65535))).join('')}"`,
-        () => `"${['undefined','null','NaN','Infinity','function','object','string','number','boolean'][Math.floor(Math.random() * 9)]}"`,
-        () => `"${['さくら','つき','ほし','ゆき','ねこ','みず','かぜ','やみ','そら','れい','むげん','はな','くろ','しろ','あか','あお','みどり','きいろ','むらさき','だいだい'][Math.floor(Math.random() * 20)]}"`,
-        () => `"${['سلام','قمر','نور','ليل','شمس','نار','روح','موت','سماء','أرض','بحر','ريح','نار','ظلام','فجر','غروب','نجم','كوكب'][Math.floor(Math.random() * 18)]}"`
-    ];
-
-    const usedNames = new Set();
-    for (let i = 0; i < total; i++) {
-        let name = _ultraName(names);
-        while (usedNames.has(name)) name = _ultraName(names);
-        usedNames.add(name);
-        const type = types[Math.floor(Math.random() * types.length)];
-        const value = values[Math.floor(Math.random() * values.length)]();
-        out += `${type} ${name} = ${value};\n`;
-        
-        // Inject random comments dan junk code
-        if (i % 5 === 0) out += `/* ${_ultraRandom(20)} */\n`;
-        if (i % 7 === 0) out += `// ${_ultraRandom(15)}\n`;
-        if (i % 11 === 0) out += `console.log("${_ultraRandom(10)}");\n`;
-        if (i % 13 === 0) out += `try{${_ultraRandom(5)}}catch(e){}\n`;
-        if (i % 17 === 0) out += `(function(){${_ultraRandom(10)}})();\n`;
-    }
-    return out;
-};
-
-// --- Multi-Layer Encoding dengan 10+ Layer ---
-const _ultraEncode = (data) => {
-    const encoders = [
-        (s) => Buffer.from(s).toString('base64'),
-        (s) => Buffer.from(s).toString('hex'),
-        (s) => s.split('').reverse().join(''),
-        (s) => encodeURIComponent(s),
-        (s) => Buffer.from(s).toString('base64'),
-        (s) => Array.from(s).map(c => c.charCodeAt(0).toString(16)).join(''),
-        (s) => s.split('').map(c => String.fromCharCode(c.charCodeAt(0) + 1)).join(''),
-        (s) => s.split('').map(c => String.fromCharCode(c.charCodeAt(0) ^ 42)).join(''),
-        (s) => s.split('').map(c => c.charCodeAt(0).toString(36)).join(''),
-        (s) => s.split('').map(c => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0')).join(''),
-        (s) => Buffer.from(s).toString('base64').split('').reverse().join(''),
-        (s) => s.split('').map(c => String.fromCharCode(255 - c.charCodeAt(0))).join('')
-    ];
-    
-    let result = data;
-    const shuffled = encoders.sort(() => Math.random() - 0.5);
-    const layers = Math.floor(Math.random() * 5) + 3;
-    
-    for (let i = 0; i < layers && i < shuffled.length; i++) {
-        result = shuffled[i](result);
-        // Inject random string between layers
-        if (Math.random() > 0.7) {
-            result += _ultraRandom(10);
-        }
-    }
-    return result;
-};
-
-// --- Dynamic Decoder dengan Random Method ---
-const _ultraDecoder = (varName, encoding) => {
-    const decoders = [
-        `Buffer.from(${varName},'${encoding}').toString()`,
-        `atob(${varName})`,
-        `unescape(${varName})`,
-        `decodeURIComponent(${varName})`,
-        `String.fromCharCode.apply(null,[...Buffer.from(${varName},'${encoding}')])`,
-        `new Function('return ' + atob(${varName}))()`,
-        `eval('atob(' + ${varName} + ')')`,
-        `Function('return atob(' + ${varName} + ')')()`,
-        `[...Buffer.from(${varName},'${encoding}')].map(c=>String.fromCharCode(c)).join('')`,
-        `${varName}.split('').reverse().join('')`,
-        `(new Buffer(${varName},'${encoding}')).toString()`
-    ];
-    return decoders[Math.floor(Math.random() * decoders.length)];
-};
-
-// --- Advanced Anti-Debug & Anti-Tamper ---
-const _ultraProtection = () => {
-    const protections = [
-        // Debugger traps
-        'setInterval(()=>{debugger;},100)',
-        'function _d(){debugger;} setInterval(_d,50)',
-        'setTimeout(()=>{debugger;},1)',
-        'const _t=Date.now();while(Date.now()-_t<100){}',
-        'console.clear();console.log("' + _ultraRandom(30) + '")',
-        'try{eval("debugger")}catch(e){}',
-        
-        // Console hijacking
-        'console.log=function(){};console.warn=function(){};console.error=function(){};',
-        'console.clear();',
-        
-        // Process exit traps
-        'process.on("uncaughtException",()=>{process.exit()});',
-        'process.on("unhandledRejection",()=>{process.exit()});',
-        
-        // Time checks
-        'const _s=Date.now();while(Date.now()-_s<50){}',
-        
-        // Global pollution
-        'Object.freeze(Object.prototype);',
-        'Object.seal(Object.prototype);',
-        
-        // Proxy traps
-        'new Proxy(global,{set:()=>false,get:()=>undefined})',
-        
-        // Memory check
-        'const _m=process.memoryUsage();if(_m.heapUsed>100000000)process.exit()'
-    ];
-    
-    const selected = [];
-    const count = Math.floor(Math.random() * 5) + 3;
-    const shuffled = protections.sort(() => Math.random() - 0.5);
-    for (let i = 0; i < count && i < shuffled.length; i++) {
-        selected.push(shuffled[i]);
-    }
-    return selected.join('\n');
-};
-
-// --- Control Flow Obfuscation ---
-const _ultraControlFlow = (code) => {
-    const switches = [];
-    const cases = [];
-    const conditions = [
-        'typeof ' + _ultraRandom(5) + ' === "undefined"',
-        'Math.random() > 0.5',
-        'Date.now() % 2 === 0',
-        '!!' + _ultraRandom(5),
-        'new Date().getDay() % 2 === 0'
-    ];
-    
-    for (let i = 0; i < 30; i++) {
-        const caseVal = Math.floor(Math.random() * 1000) - 500;
-        const condition = conditions[Math.floor(Math.random() * conditions.length)];
-        cases.push(`case ${caseVal}: if(${condition}){ break; } return "${_ultraRandom(20)}";`);
-    }
-    cases.push(`default: return "${_ultraRandom(20)}";`);
-    
-    const switchVar = _ultraRandom(5);
-    return `switch(${switchVar}){${cases.join('')}}`;
-};
-
-// --- String Encryption dengan Multiple Keys ---
-const _ultraStringEncrypt = (str) => {
-    const keys = [
-        Math.floor(Math.random() * 256),
-        Math.floor(Math.random() * 256),
-        Math.floor(Math.random() * 256),
-        Math.floor(Math.random() * 256)
-    ];
-    let encrypted = '';
-    for (let i = 0; i < str.length; i++) {
-        encrypted += String.fromCharCode(str.charCodeAt(i) ^ keys[i % keys.length]);
-    }
-    return {
-        data: Buffer.from(encrypted).toString('base64'),
-        keys: keys.join(',')
-    };
-};
-
-// --- Self-Modifying Code Generator ---
-const _ultraSelfModify = (code) => {
-    const parts = code.match(/.{1,50}/g) || [];
-    const shuffled = parts.sort(() => Math.random() - 0.5);
-    const indexMap = parts.map((_, i) => i).sort(() => Math.random() - 0.5);
-    
-    return {
-        parts: shuffled,
-        indices: indexMap
-    };
-};
-
-// ============================================================
-// MAIN ULTRA OBFUSCATOR
-// ============================================================
-
-function ultraObfuscator(code, options = {}) {
-    const {
-        chaosVars = 2000,
-        protectionLevel = 'maximum',
-        expireDays = 0,
-        lockDomain = '',
-        debugMode = false
-    } = options;
-
-    // Generate names pools
-    const namePools = [
-        // Japanese
-        ['くみにに','ほえめさとす','おゆこし','けたよえしふ','めすりねひ','ねわそよて','れけにせ','とふめそんと','こおんさもか','とへえ','ぬとれらゆよ','ちもぬうきこ'],
-        // Arabic
-        ['سلام','قمر','نور','ليل','شمس','نار','روح','موت','سماء','أرض','بحر','ريح','نار','ظلام','فجر','غروب','نجم','كوكب'],
-        // Symbols
-        ['★','☆','✧','✦','✶','✷','✸','✹','✺','✻','✼','✽','✾','✿','❀','❁','❂','❃'],
-        // Greek
-        ['α','β','γ','δ','ε','ζ','η','θ','ι','κ','λ','μ','ν','ξ','ο','π','ρ','σ','τ','υ','φ','χ','ψ','ω'],
-        // Russian
-        ['А','Б','В','Г','Д','Е','Ё','Ж','З','И','Й','К','Л','М','Н','О','П','Р','С','Т','У','Ф','Х','Ц','Ч','Ш','Щ','Ъ','Ы','Ь','Э','Ю','Я'],
-        // Chinese
-        ['我','你','他','她','它','们','是','的','了','在','和','有','这','那','不','人','们','来','去','上','下','大','小','多','少','好','坏','美','丑','善','恶']
-    ];
-    
-    const names = namePools[Math.floor(Math.random() * namePools.length)];
-    const b64 = Buffer.from(code).toString('base64');
-    const hex = Buffer.from(code).toString('hex');
-    
-    // Encrypt the code with multiple layers
-    const encrypted = _ultraEncode(code);
-    const encryptedData = _ultraStringEncrypt(code);
-    
-    // Generate random function names
-    const mainFunc = _ultraName(names);
-    const decodeFunc = _ultraName(names);
-    const execFunc = _ultraName(names);
-    const dataVar = _ultraName(names);
-    const keyVar = _ultraName(names);
-    const resultVar = _ultraName(names);
-    const checkVar = _ultraName(names);
-    
-    // Generate chaos variables
-    const chaos = _ultraChaos(chaosVars, names);
-    
-    // Generate control flow
-    const flow = _ultraControlFlow(code);
-    
-    // Generate protection
-    const protection = _ultraProtection();
-    
-    // Self-modifying code
-    const selfMod = _ultraSelfModify(code);
-    
-    // Time lock
-    let timeLock = '';
-    if (expireDays > 0) {
-        const expired = Date.now() + (expireDays * 86400000);
-        timeLock = `
-            const ${_ultraName(names)} = ${expired};
-            if(Date.now() > ${_ultraName(names)}) {
-                ${_ultraName(names)}();
-                process.exit();
-            }
-        `;
-    }
-    
-    // Domain lock
-    let domainLock = '';
-    if (lockDomain) {
-        domainLock = `
-            const ${_ultraName(names)} = require('os').hostname();
-            if(${_ultraName(names)} !== "${lockDomain}") {
-                console.log("${_ultraRandom(30)}");
-                process.exit();
-            }
-        `;
-    }
-    
-    // Build the final obfuscated code
-    const result = `
-        // ${_ultraRandom(50)}
-        // ${_ultraRandom(50)}
-        // ${_ultraRandom(50)}
-        
-        (function(){
-            ${chaos}
-            ${protection}
-            ${timeLock}
-            ${domainLock}
-            
-            // Decoder function
-            function ${decodeFunc}(${_ultraName(names)}) {
-                ${flow}
-                const ${_ultraName(names)} = ${_ultraDecoder('data', 'base64')};
-                return ${_ultraName(names)};
-            }
-            
-            // Main execution
-            function ${mainFunc}() {
-                const ${dataVar} = "${encrypted}";
-                const ${keyVar} = [${encryptedData.keys}];
-                const ${_ultraName(names)} = () => {
-                    let ${_ultraName(names)} = "";
-                    for(let ${_ultraName(names)}=0; ${_ultraName(names)}<${dataVar}.length; ${_ultraName(names)}++) {
-                        ${_ultraName(names)} += String.fromCharCode(
-                            ${dataVar}.charCodeAt(${_ultraName(names)}) ^ ${keyVar}[${_ultraName(names)} % ${keyVar}.length]
-                        );
-                    }
-                    return ${_ultraName(names)};
-                };
-                
-                // Anti-debug check
-                ${Math.random() > 0.5 ? 'const _d = () => { debugger; };' : ''}
-                ${Math.random() > 0.5 ? 'setInterval(()=>{ debugger; }, 1000);' : ''}
-                
-                // Execute decoded code
-                try {
-                    const ${resultVar} = ${decodeFunc}(${dataVar});
-                    ${_ultraName(names)}(${resultVar});
-                } catch(${_ultraName(names)}) {
-                    ${_ultraName(names)}();
-                }
-            }
-            
-            // Wrap execution
-            ${_ultraName(names)}(${_ultraName(names)});
-            ${mainFunc}();
-            
-        })();
-        
-        // ${_ultraRandom(50)}
-        // ${_ultraRandom(50)}
-    `;
-    
-    // Apply additional obfuscation layers
-    let finalCode = result;
-    
-    // Randomly apply additional transformations
-    if (Math.random() > 0.5) {
-        finalCode = finalCode.replace(/console/g, _ultraName(names));
-    }
-    if (Math.random() > 0.5) {
-        finalCode = finalCode.replace(/process/g, _ultraName(names));
-    }
-    if (Math.random() > 0.5) {
-        finalCode = finalCode.replace(/require/g, _ultraName(names));
-    }
-    
-    return finalCode;
+function reversedStyle(code) {
+  const rev = code.split("").reverse().join("")
+  const splitEsc = escStr("split")
+  const revEsc   = escStr("reverse")
+  const joinEsc  = escStr("join")
+  return `eval("${rev.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"["${splitEsc}"]("")["${revEsc}"]()["${joinEsc}"](""))`
 }
 
-// ============================================================
-// VARIANT OBFUSCATORS WITH DIFFERENT TECHNIQUES
-// ============================================================
+// ─── var-style  (var_ prefixed names + flat const array, no Unicode noise) ───
 
-// --- Variant 1: Maximum Protection ---
-function maxProtectionStyle(code) {
-    return ultraObfuscator(code, {
-        chaosVars: 3000,
-        protectionLevel: 'maximum',
-        expireDays: 0
-    });
+function varStyle(code) {
+  const id = () => "var_" + Math.random().toString(36).slice(2, 8)
+
+  const arrName = id()
+  const fnShift = id()
+  const fnMain  = id()
+  const varB64  = id()
+  const loopVar = id()
+
+  const strings = [
+    "push", "shift", "from", "base64", "toString",
+    ...Array.from({ length: 40 }, () => randomHex(4)),
+  ]
+
+  const arrayCode = buildConstArray(arrName, strings)
+  const b64 = Buffer.from(code).toString("base64")
+
+  return `function ${fnShift}(${fnShift},${arrName}){for(var ${loopVar}=0;${loopVar}<${arrName};${loopVar}++){${fnShift}["${escStr("push")}"](${fnShift}["${escStr("shift")}"]())}return ${fnShift}}
+${arrayCode}
+;(function(){
+function ${fnMain}(){
+const ${varB64}="${b64}";
+return Buffer["${escStr("from")}"](${varB64},"${escStr("base64")}")["${escStr("toString")}"]();
+}
+eval(${fnMain}());
+})();`
 }
 
-// --- Variant 2: Time Locked ---
-function timeLockUltra(code, days = 30) {
-    return ultraObfuscator(code, {
-        chaosVars: 2000,
-        protectionLevel: 'high',
-        expireDays: days
-    });
+// ─── custom-style  (caller-supplied function name, kanji chaos) ──────────────
+
+function customStyle(code, name) {
+  const names = ["改造", "極限", "混乱", "破壊", "地獄", "暗黒", "虚無"]
+  const pick = () =>
+    names[Math.floor(Math.random() * names.length)] +
+    ["ツ", "々", "ฬ"][Math.floor(Math.random() * 3)] +
+    Math.floor(Math.random() * 99999)
+
+  const arrName = pick()
+  const fnShift = pick()
+  const varB64  = pick()
+  const loopVar = pick()
+
+  const safeName = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name) ? name : "CustomLoader"
+
+  const strings = [
+    "push", "shift", "from", "base64", "toString",
+    ...Array.from({ length: 50 }, () => randomHex(4)),
+  ]
+
+  const arrayCode = buildConstArray(arrName, strings)
+  const b64 = Buffer.from(code).toString("base64")
+
+  return `function ${fnShift}(${fnShift},${arrName}){for(var ${loopVar}=0;${loopVar}<${arrName};${loopVar}++){${fnShift}["${escStr("push")}"](${fnShift}["${escStr("shift")}"]())}return ${fnShift}}
+${arrayCode}
+${chaosVars(1200, Array.from({ length: 35 }, pick))}
+;(function(){
+function ${safeName}(){
+const ${varB64}="${b64}";
+return Buffer["${escStr("from")}"](${varB64},"${escStr("base64")}")["${escStr("toString")}"]();
+}
+eval(${safeName}());
+})();`
 }
 
-// --- Variant 3: Domain Locked ---
-function domainLockStyle(code, domain = '') {
-    return ultraObfuscator(code, {
-        chaosVars: 1500,
-        protectionLevel: 'maximum',
-        lockDomain: domain
-    });
+// ─── time-lock style  (expires after N days, uses const-array pattern) ────────
+
+function timeLockStyle(code, days) {
+  const expired = Date.now() + Number(days) * 86400000
+  const b64 = Buffer.from(code).toString("base64")
+
+  const names = ["時限", "消滅", "期限", "終焉"]
+  const pick = () =>
+    names[Math.floor(Math.random() * names.length)] +
+    Math.floor(Math.random() * 99999)
+
+  const fnMain = pick()
+  const varB64 = pick()
+
+  const strings = ["from", "base64", "toString", "exit", "log"]
+  const arrName = pick()
+  const arrayCode = buildConstArray(arrName, strings)
+
+  return `${arrayCode}
+;(function(){
+if(Date["${escStr("now")}"]()>${expired}){
+console["${escStr("log")}"]("${escStr("Script Expired")}");
+process["${escStr("exit")}"]();
+}
+function ${fnMain}(){
+const ${varB64}="${b64}";
+return Buffer["${escStr("from")}"](${varB64},"${escStr("base64")}")["${escStr("toString")}"]();
+}
+eval(${fnMain}());
+})();`
 }
 
-// --- Variant 4: Minimal But Deadly ---
-function minimalUltra(code) {
-    return ultraObfuscator(code, {
-        chaosVars: 1000,
-        protectionLevel: 'medium'
-    });
+// ─── nebula-style  (space kanji names, massive chaos 2500) ────────────────────
+
+function nebulaStyle(code) {
+  const names = ["星雲", "宇宙", "銀河", "闇", "ブラック", "無限", "ゼロ"]
+  const pick = () =>
+    names[Math.floor(Math.random() * names.length)] +
+    ["ツ", "々", "ฬ", "刃"][Math.floor(Math.random() * 4)] +
+    Math.floor(Math.random() * 99999)
+
+  const arrName = pick()
+  const fnShift = pick()
+  const fnMain  = pick()
+  const varB64  = pick()
+
+  const strings = [
+    "push", "shift", "from", "base64", "toString",
+    ...Array.from({ length: 60 }, () => randomHex(4)),
+  ]
+
+  const arrayCode = buildConstArray(arrName, strings)
+  const b64 = Buffer.from(code).toString("base64")
+
+  return `function ${fnShift}(${fnShift},${arrName}){for(var ${varB64}=0;${varB64}<${arrName};${varB64}++){${fnShift}["${escStr("push")}"](${fnShift}["${escStr("shift")}"]())}return ${fnShift}}
+${arrayCode}
+${chaosVars(2500, Array.from({ length: 50 }, pick))}
+;(function(){
+function ${fnMain}(){
+const ${varB64}="${b64}";
+return Buffer["${escStr("from")}"](${varB64},"${escStr("base64")}")["${escStr("toString")}"]();
+}
+eval(${fnMain}());
+})();`
 }
 
-// --- Variant 5: Polymorphic Ultra ---
-function polymorphicUltra(code) {
-    const styles = [
-        () => ultraObfuscator(code, { chaosVars: 2500, protectionLevel: 'maximum' }),
-        () => ultraObfuscator(code, { chaosVars: 2000, protectionLevel: 'high' }),
-        () => ultraObfuscator(code, { chaosVars: 3000, protectionLevel: 'maximum' }),
-        () => ultraObfuscator(code, { chaosVars: 1500, protectionLevel: 'medium' })
-    ];
-    return styles[Math.floor(Math.random() * styles.length)]();
+// ─── invis-style  (unescape/escape double-encoding layer) ─────────────────────
+
+function invisStyle(code) {
+  const uni = escape(Buffer.from(code).toString("base64"))
+  const unescEsc   = escStr("unescape")
+  const bufFrom    = escStr("from")
+  const b64Str     = escStr("base64")
+  const toStringE  = escStr("toString")
+  return `eval(Buffer["${bufFrom}"](${unescEsc}("${uni}"),"${b64Str}")["${toStringE}"]())`
 }
 
-// --- Variant 6: Nuclear Protection ---
-function nuclearStyle(code) {
-    let result = ultraObfuscator(code, {
-        chaosVars: 5000,
-        protectionLevel: 'maximum'
-    });
-    
-    // Apply additional layers
-    for (let i = 0; i < 3; i++) {
-        result = ultraObfuscator(result, {
-            chaosVars: 1000,
-            protectionLevel: 'high'
-        });
-    }
-    
-    return result;
+// ─── rosemary-style  (rose/night kanji names, 800 chaos vars) ────────────────
+
+function rosemaryStyle(code) {
+  const names = ["薔薇", "深夜", "死", "夢", "幽", "霧", "影", "魂"]
+  const pick = () =>
+    names[Math.floor(Math.random() * names.length)] +
+    ["ツ", "々", "ฬ", "刃"][Math.floor(Math.random() * 4)] +
+    Math.floor(Math.random() * 99999)
+
+  const arrName = pick()
+  const fnShift = pick()
+  const fnMain  = pick()
+  const varB64  = pick()
+
+  const strings = [
+    "push", "shift", "from", "base64", "toString",
+    ...Array.from({ length: 45 }, () => randomHex(4)),
+  ]
+
+  const arrayCode = buildConstArray(arrName, strings)
+  const b64 = Buffer.from(code).toString("base64")
+
+  return `function ${fnShift}(${fnShift},${arrName}){for(var ${varB64}=0;${varB64}<${arrName};${varB64}++){${fnShift}["${escStr("push")}"](${fnShift}["${escStr("shift")}"]())}return ${fnShift}}
+${arrayCode}
+${chaosVars(800, Array.from({ length: 25 }, pick))}
+;(function(){
+function ${fnMain}(){
+const ${varB64}="${b64}";
+return Buffer["${escStr("from")}"](${varB64},"${escStr("base64")}")["${escStr("toString")}"]();
+}
+eval(${fnMain}());
+})();`
 }
 
-// ============================================================
-// COMMANDS FOR ULTRA OBFUSCATION
-// ============================================================
+module.exports = {
+  japanStyle,
+  arabStyle,
+  balancedStyle,
+  hardcoreStyle,
+  phantomStyle,
+  artilleryStyle,
+  siuStyle,
+  reversedStyle,
+  varStyle,
+  customStyle,
+  timeLockStyle,
+  nebulaStyle,
+  invisStyle,
+  rosemaryStyle,
+}
 
-// /ultra - Super complex obfuscation
-bot.command('ultra', (ctx) => 
-    processObfuscate(ctx, ultraObfuscator, 'Ultra Complex')
-);
 
-// /maxprotect - Maximum protection
-bot.command('maxprotect', (ctx) => 
-    processObfuscate(ctx, maxProtectionStyle, 'Max Protection')
-);
-
-// /timelock - Time locked obfuscation
-bot.command('timelock', async (ctx) => {
-    const days = ctx.message.text.split(' ')[1] || 30;
-    await processObfuscate(ctx, 
-        (code) => timeLockUltra(code, parseInt(days)), 
-        `TimeLock ${days} days`
-    );
-});
-
-// /nuclear - Nuclear level protection
-bot.command('nuclear', (ctx) => 
-    processObfuscate(ctx, nuclearStyle, 'Nuclear')
-);
-
-// /polymorph - Polymorphic obfuscation
-bot.command('polymorph', (ctx) => 
-    processObfuscate(ctx, polymorphicUltra, 'Polymorphic')
-);
-
-// ============================================================
-// EXPORTS - Tambahkan ke module.exports yang sudah ada
-// ============================================================
 
 // COMMAND
 // /artillery
@@ -2985,28 +2856,28 @@ ctx.reply(String(e))
 // =============================
 bot.command("backup", async (ctx) => {
 
-    const userId =
-        Number(ctx.from.id)
+        const userId =
+            Number(ctx.from.id)
 
-    // owner only
-    if (userId !== config.OWNER_ID) {
+        // owner only
+        if (userId !== config.OWNER_ID) {
 
-        return ctx.reply(
-            "❌ Owner only."
+            return ctx.reply(
+                "❌ Owner only."
+            )
+        }
+
+        await ctx.reply(
+            "📦 Membuat backup..."
         )
-    }
 
-    await ctx.reply(
-        "📦 Membuat backup..."
-    )
+        await sendBackup(
+            "Manual Backup"
+        )
 
-    await sendBackup(
-        "Manual Backup"
-    )
-
-    await ctx.reply(
-        "✅ Backup berhasil dikirim ke owner."
-    )
+        await ctx.reply(
+            "✅ Backup berhasil dikirim ke owner."
+        )
 })
 
 // =============================
