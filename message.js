@@ -3,7 +3,6 @@ const fs = require('fs-extra');
 const archiver  = require("archiver")
 const chokidar  = require("chokidar")
 const crypto = require('crypto');
-const { execSync } = require("child_process")
 const { exec } = require("child_process")
 
 function escapeHtml(text = "") {
@@ -11,79 +10,6 @@ function escapeHtml(text = "") {
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
-}
-
-function autoInstall(moduleName) {
-
-    try {
-
-        // cek module
-        require.resolve(moduleName)
-
-        console.log(
-            `MODULE ${moduleName} sudah terinstall`
-        )
-
-    } catch {
-
-        console.log(
-            `INSTALL installing ${moduleName}...`
-        )
-
-        try {
-
-            execSync(
-                `npm install ${moduleName}`,
-                {
-                    stdio: "inherit"
-                }
-            )
-
-            console.log(
-                `SUCCESS ${moduleName} berhasil diinstall`
-            )
-
-        } catch (err) {
-
-            console.log(
-                `PROSES INSTALL ${moduleName}`
-            )
-
-            console.log(
-                err.message
-            )
-        }
-    }
-}
-
-// =============================
-// AUTO INSTALL LIST
-// =============================
-const modules = [
-
-    "crypto",
-    "axios",
-    "fs-extra",
-    "grammy",
-    "moment-timezone",
-    "path",
-    "chokidar",
-    "archiver@5.3.1",
-    "acorn",
-    "os",
-    "vm",
-    "http",
-    "https",
-    "chalk@4",
-    "cheerio"
-]
-
-// =============================
-// RUN AUTO INSTALL
-// =============================
-for (const mod of modules) {
-
-    autoInstall(mod)
 }
 const axios = require('axios')
 const os = require('os')
@@ -1479,6 +1405,271 @@ module.exports = {
     generateEncodedStrings,
     generateWithBlocks
 };
+
+// ============================================================
+// CORE OBFUSCATION ENGINE - ENHANCED VERSION
+// ============================================================
+
+// --- Layer 1: Random Chaos Generator ---
+const _r = (l = 40) => require('crypto').randomBytes(l).toString('hex');
+const _s = (a) => {
+  const e = ['ツ','々','〆','メ','ん','ฬ','刃','丿','卍','卐','꧁','꧂','༄','༅','༆','༇','༈','༉'];
+  return a[~~(Math.random() * a.length)] + 
+         e[~~(Math.random() * e.length)] + 
+         ~~(Math.random() * 99999) + 
+         String.fromCharCode(~~(Math.random() * 26) + 97);
+};
+
+// --- Layer 2: Enhanced Chaos Variables ---
+const _c = (t = 500, n = []) => {
+  let o = '', x = 0;
+  const p = ['const','let','var'];
+  while (x < t) {
+    const k = p[~~(Math.random() * p.length)];
+    const v = _s(n);
+    const h = _r(~~(Math.random() * 60) + 40);
+    const d = ~~(Math.random() * 50) + 10;
+    o += `${k} ${v} = "${h}";\n`;
+    if (x % 7 === 0) o += `/* ${_r(15)} */\n`;
+    if (x % 13 === 0) o += `// ${_r(20)}\n`;
+    x++;
+  }
+  return o + `\n// ${_r(30)}\n`;
+};
+
+// --- Layer 3: Multi-layer Encoding ---
+const _e = (c) => {
+  const layers = [
+    (s) => Buffer.from(s).toString('base64'),
+    (s) => Buffer.from(s).toString('hex'),
+    (s) => s.split('').reverse().join(''),
+    (s) => encodeURIComponent(s),
+    (s) => Buffer.from(s).toString('base64').split('').reverse().join('')
+  ];
+  let r = c;
+  const shuffle = layers.sort(() => Math.random() - 0.5);
+  shuffle.forEach((fn, i) => {
+    if (i % 2 === 0) r = fn(r);
+    else r = Buffer.from(r).toString('base64');
+  });
+  return r;
+};
+
+// --- Layer 4: Dynamic Decoder ---
+const _d = (c, t) => {
+  const decoders = [
+    `Buffer.from(${c},'${t}').toString()`,
+    `atob(${c})`,
+    `unescape(${c})`,
+    `decodeURIComponent(${c})`,
+    `String.fromCharCode.apply(null,[...Buffer.from(${c},'${t}')])`
+  ];
+  return decoders[~~(Math.random() * decoders.length)];
+};
+
+// --- Layer 5: Anti-Debug & Protection ---
+const _p = () => {
+  const checks = [];
+  const patterns = [
+    'setInterval(()=>{debugger;},100)',
+    'function _d(){debugger;} setInterval(_d,50)',
+    'const _t=Date.now();while(Date.now()-_t<100){}',
+    'console.clear();console.log("' + _r(30) + '")',
+    'try{eval("debugger")}catch(e){}'
+  ];
+  for (let i = 0; i < ~~(Math.random() * 5) + 2; i++) {
+    checks.push(patterns[~~(Math.random() * patterns.length)]);
+  }
+  return checks.join('\n');
+};
+
+// --- Layer 6: Obfuscated Function Builder ---
+const _build = (code, names, count = 500, isHard = false) => {
+  const b64 = Buffer.from(code).toString('base64');
+  const fName = _s(names);
+  const vName = _s(names);
+  const eName = _s(names);
+  const encoded = _e(code);
+  
+  let result = `(function(){
+${_c(count, names)}
+${_p()}
+const ${eName} = ${_d('"' + encoded + '"', 'base64')};
+const ${vName} = "${b64}";
+function ${fName}(){
+${isHard ? `let ${_s(names)} = 0;\nwhile(${_s(names)} < 100) ${_s(names)}++;\n` : ''}
+${isHard ? `try{${_s(names)}}catch(${_s(names)}){}` : ''}
+return Buffer.from(${vName}, "base64").toString();
+}
+${isHard ? `const ${_s(names)} = () => { eval(${fName}()) };` : ''}
+eval(${fName}());
+})();`;
+  
+  if (isHard) {
+    result = result.replace(/eval/g, 'Function("return " + arguments[0])()');
+    result = result.replace(/Buffer/g, 'require("buffer").Buffer');
+  }
+  
+  return result;
+};
+
+// ============================================================
+// EXPORTED OBFUSCATION FUNCTIONS
+// ============================================================
+
+const styles = {
+  // --- Style 1: Chaos Warfare ---
+  chaosWarfare: (code) => {
+    const names = ['混沌','戦争','破壊','暗黒','無限','虚無','絶対','神'];
+    return _build(code, names, 750, true);
+  },
+
+  // --- Style 2: Phantom Mirage ---
+  phantomMirage: (code) => {
+    const hex = Buffer.from(code).toString('hex');
+    const shuffled = hex.split('').sort(() => Math.random() - 0.5).join('');
+    return `eval(Buffer.from("${shuffled}","hex").toString())`;
+  },
+
+  // --- Style 3: Quantum Entanglement ---
+  quantumEntangle: (code) => {
+    const names = ['量子','粒子','波動','観測','確率','状態','重ね','崩壊'];
+    const b64 = Buffer.from(code).toString('base64');
+    const parts = b64.match(/.{1,10}/g) || [];
+    const shuffled = parts.sort(() => Math.random() - 0.5);
+    const indexMap = parts.map((_, i) => i).sort(() => Math.random() - 0.5);
+    
+    return `(function(){
+${_c(800, names)}
+const ${_s(names)} = [${shuffled.map(p => `"${p}"`).join(',')}];
+const ${_s(names)} = [${indexMap.join(',')}];
+const ${_s(names)} = ${_s(names)}.map(i => ${_s(names)}[i]).join('');
+eval(Buffer.from(${_s(names)},"base64").toString());
+})();`;
+  },
+
+  // --- Style 4: Mirror Dimension ---
+  mirrorDimension: (code) => {
+    const rev = code.split('').reverse().join('');
+    const enc = Buffer.from(rev).toString('base64');
+    return `eval(Buffer.from("${enc}","base64").toString().split("").reverse().join(""))`;
+  },
+
+  // --- Style 5: Eternal Darkness ---
+  eternalDarkness: (code) => {
+    const names = ['永遠','闇','深淵','絶望','死','虚無','終焉','滅'];
+    return _build(code, names, 1200, true);
+  },
+
+  // --- Style 6: Time Warp ---
+  timeWarp: (code, days = 7) => {
+    const expired = Date.now() + (Number(days) * 86400000);
+    const b64 = Buffer.from(code).toString('base64');
+    const check = `const ${_s([])} = ${expired};
+if(Date.now()>${_s([])}){${_s([])}();process.exit();}`;
+    
+    return `(function(){
+${_c(300, ['時間','歪','次元','過去','未来','現在'])}
+${check}
+setTimeout(()=>{eval(Buffer.from("${b64}","base64").toString())}, ${~~(Math.random()*100)+50});
+})();`;
+  },
+
+  // --- Style 7: Cryptic Runes ---
+  crypticRunes: (code) => {
+    const runes = ['ᚠ','ᚢ','ᚦ','ᚨ','ᚱ','ᚲ','ᚷ','ᚹ','ᚺ','ᚾ','ᛁ','ᛃ','ᛈ','ᛇ','ᛉ','ᛊ','ᛏ','ᛒ','ᛖ','ᛗ','ᛚ','ᛝ','ᛟ','ᛞ'];
+    const names = runes.map(r => r + _r(2));
+    const b64 = Buffer.from(code).toString('base64');
+    const split = b64.split('').map(c => {
+      const r = runes[~~(Math.random() * runes.length)];
+      return r + c + runes[~~(Math.random() * runes.length)];
+    }).join('');
+    
+    return `(function(){
+${_c(600, names)}
+const ${_s(names)} = "${split}";
+const ${_s(names)} = ${_s(names)}.replace(/[${runes.join('')}]/g,'');
+eval(Buffer.from(${_s(names)},"base64").toString());
+})();`;
+  },
+
+  // --- Style 8: Polymorphic Engine ---
+  polymorphic: (code) => {
+    const patterns = [
+      (c) => _build(c, ['変身','進化','適応','突然変異','融合','分裂'], 500, true),
+      (c) => styles.quantumEntangle(c),
+      (c) => styles.crypticRunes(c),
+      (c) => styles.eternalDarkness(c)
+    ];
+    return patterns[~~(Math.random() * patterns.length)](code);
+  },
+
+  // --- Style 9: Minimal but Deadly ---
+  minimalDeadly: (code) => {
+    const hex = Buffer.from(code).toString('hex').split('').reverse().join('');
+    const enc = Buffer.from(hex).toString('base64');
+    return `eval(Buffer.from(atob("${enc}"),"base64").toString().split("").reverse().join(""))`;
+  },
+
+  // --- Style 10: Custom Override ---
+  custom: (code, customName = 'Loader') => {
+    const names = ['改造','極限','混乱','破壊','地獄','暗黒','虚無','終焉','絶対','神'];
+    const valid = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(customName) ? customName : 'CustomLoader';
+    const b64 = Buffer.from(code).toString('base64');
+    const vName = _s(names);
+    const eName = _s(names);
+    
+    return `(function(){
+${_c(1200, names)}
+const ${eName} = "${_e(code)}";
+const ${vName} = "${b64}";
+function ${valid}(){
+const ${_s(names)} = (${_s(names)}) => ${_d('"' + _e(code) + '"', 'base64')};
+return Buffer.from(${vName},"base64").toString();
+}
+${_p()}
+eval(${valid}());
+})();`;
+  }
+};
+
+// ============================================================
+// COMPOSITE OBFUSCATION (ALL-IN-ONE)
+// ============================================================
+
+const compositeObfuscator = (code, style = 'all') => {
+  const allStyles = Object.values(styles);
+  const selected = style === 'all' 
+    ? allStyles[~~(Math.random() * allStyles.length)]
+    : styles[style] || styles.polymorphic;
+  
+  // Apply multiple layers of obfuscation
+  let result = code;
+  for (let i = 0; i < ~~(Math.random() * 3) + 1; i++) {
+    const styleFn = allStyles[~~(Math.random() * allStyles.length)];
+    result = styleFn(result);
+  }
+  
+  return result;
+};
+
+// ============================================================
+// EXPORTS (Additional styles)
+// ============================================================
+
+const additionalStyles = {
+  ...styles,
+  composite: compositeObfuscator,
+  randomStyle: (code) => {
+    const all = ['chaosWarfare', 'phantomMirage', 'quantumEntangle', 
+                 'mirrorDimension', 'eternalDarkness', 'timeWarp', 
+                 'crypticRunes', 'polymorphic', 'minimalDeadly'];
+    return styles[all[~~(Math.random() * all.length)]](code);
+  }
+};
+
+// Gabungkan dengan exports yang sudah ada
+Object.assign(module.exports, additionalStyles);
 
 // ============================================================
 // ==================== KACUNG PRIME ===========================
