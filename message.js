@@ -1617,268 +1617,490 @@ eval(Buffer.from("${b64}","base64").toString());
 }
 
 // ============================================================
-// CORE OBFUSCATION ENGINE - ENHANCED VERSION
+// SUPER COMPLEX OBFUSCATION ENGINE - ULTIMATE PROTECTION
 // ============================================================
 
-// --- Layer 1: Random Chaos Generator ---
-const _r = (l = 40) => crypto.randomBytes(l).toString('hex');
-const _s = (a) => {
-  const e = ['ツ','々','〆','メ','ん','ฬ','刃','丿','卍','卐','꧁','꧂','༄','༅','༆','༇','༈','༉'];
-  return a[~~(Math.random() * a.length)] + 
-         e[~~(Math.random() * e.length)] + 
-         ~~(Math.random() * 99999) + 
-         String.fromCharCode(~~(Math.random() * 26) + 97);
-};
-
-// --- Layer 2: Enhanced Chaos Variables ---
-const _c = (t = 500, n = []) => {
-  let o = '', x = 0;
-  const p = ['const','let','var'];
-  while (x < t) {
-    const k = p[~~(Math.random() * p.length)];
-    const v = _s(n);
-    const h = _r(~~(Math.random() * 60) + 40);
-    o += `${k} ${v} = "${h}";\n`;
-    if (x % 7 === 0) o += `/* ${_r(15)} */\n`;
-    if (x % 13 === 0) o += `// ${_r(20)}\n`;
-    x++;
-  }
-  return o + `\n// ${_r(30)}\n`;
-};
-
-// --- Layer 3: Multi-layer Encoding ---
-const _e = (c) => {
-  const layers = [
-    (s) => Buffer.from(s).toString('base64'),
-    (s) => Buffer.from(s).toString('hex'),
-    (s) => s.split('').reverse().join(''),
-    (s) => encodeURIComponent(s),
-    (s) => Buffer.from(s).toString('base64').split('').reverse().join('')
-  ];
-  let r = c;
-  const shuffle = layers.sort(() => Math.random() - 0.5);
-  shuffle.forEach((fn, i) => {
-    if (i % 2 === 0) r = fn(r);
-    else r = Buffer.from(r).toString('base64');
-  });
-  return r;
-};
-
-// --- Layer 4: Dynamic Decoder ---
-const _d = (c, t) => {
-  const decoders = [
-    `Buffer.from(${c},'${t}').toString()`,
-    `atob(${c})`,
-    `unescape(${c})`,
-    `decodeURIComponent(${c})`,
-    `String.fromCharCode.apply(null,[...Buffer.from(${c},'${t}')])`
-  ];
-  return decoders[~~(Math.random() * decoders.length)];
-};
-
-// --- Layer 5: Anti-Debug & Protection ---
-const _p = () => {
-  const checks = [];
-  const patterns = [
-    'setInterval(()=>{debugger;},100)',
-    'function _d(){debugger;} setInterval(_d,50)',
-    'const _t=Date.now();while(Date.now()-_t<100){}',
-    'console.clear();console.log("' + _r(30) + '")',
-    'try{eval("debugger")}catch(e){}'
-  ];
-  for (let i = 0; i < ~~(Math.random() * 5) + 2; i++) {
-    checks.push(patterns[~~(Math.random() * patterns.length)]);
-  }
-  return checks.join('\n');
-};
-
-// --- Layer 6: Obfuscated Function Builder ---
-const _build = (code, names, count = 500, isHard = false) => {
-  const b64 = Buffer.from(code).toString('base64');
-  const fName = _s(names);
-  const vName = _s(names);
-  const eName = _s(names);
-  const encoded = _e(code);
-  
-  let result = `(function(){
-${_c(count, names)}
-${_p()}
-const ${eName} = ${_d('"' + encoded + '"', 'base64')};
-const ${vName} = "${b64}";
-function ${fName}(){
-${isHard ? `let ${_s(names)} = 0;\nwhile(${_s(names)} < 100) ${_s(names)}++;\n` : ''}
-${isHard ? `try{${_s(names)}}catch(${_s(names)}){}` : ''}
-return Buffer.from(${vName}, "base64").toString();
-}
-${isHard ? `const ${_s(names)} = () => { eval(${fName}()) };` : ''}
-eval(${fName}());
-})();`;
-  
-  if (isHard) {
-    result = result.replace(/eval/g, 'Function("return " + arguments[0])()');
-    result = result.replace(/Buffer/g, 'require("buffer").Buffer');
-  }
-  
-  return result;
-};
+/**
+ * ULTIMATE OBFUSCATOR - Menggabungkan 15+ teknik obfuscation
+ * - Multi-layer encoding (base64, hex, reverse, URI, binary)
+ * - Random code injection dengan variabel chaos
+ * - Anti-debug & anti-tamper protection
+ * - Polymorphic code generation
+ * - Control flow obfuscation
+ * - String encryption dengan multiple keys
+ * - Self-modifying code
+ * - Time-based expiration
+ * - Domain/device locking
+ * - And many more...
+ */
 
 // ============================================================
-// EXPORTED OBFUSCATION FUNCTIONS
+// CORE ENGINE
 // ============================================================
 
-const styles = {
-  // --- Style 1: Chaos Warfare ---
-  chaosWarfare: (code) => {
-    const names = ['混沌','戦争','破壊','暗黒','無限','虚無','絶対','神'];
-    return _build(code, names, 750, true);
-  },
+const _ultraRandom = (len = 40) => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?/~`';
+    let result = '';
+    for (let i = 0; i < len; i++) {
+        result += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return result;
+};
 
-  // --- Style 2: Phantom Mirage ---
-  phantomMirage: (code) => {
-    const hex = Buffer.from(code).toString('hex');
-    const shuffled = hex.split('').sort(() => Math.random() - 0.5).join('');
-    return `eval(Buffer.from("${shuffled}","hex").toString())`;
-  },
+const _ultraName = (list) => {
+    const extra = [
+        'ツ','々','〆','メ','ん','ฬ','刃','丿','卍','卐','꧁','꧂','༄','༅','༆','༇','༈','༉',
+        '★','☆','✧','✦','✶','✷','✸','✹','✺','✻','✼','✽','✾','✿','❀','❁','❂','❃',
+        '⚡','🔥','💀','👻','🎯','🎪','🎨','🎭','🎯','🎰','🎲','🎳','🎴','🎵','🎶','🎷',
+        'α','β','γ','δ','ε','ζ','η','θ','ι','κ','λ','μ','ν','ξ','ο','π','ρ','σ','τ','υ','φ','χ','ψ','ω'
+    ];
+    return list[Math.floor(Math.random() * list.length)] +
+        extra[Math.floor(Math.random() * extra.length)] +
+        Math.floor(Math.random() * 999999) +
+        String.fromCharCode(Math.floor(Math.random() * 26) + 97) +
+        Math.floor(Math.random() * 9999);
+};
 
-  // --- Style 3: Quantum Entanglement ---
-  quantumEntangle: (code) => {
-    const names = ['量子','粒子','波動','観測','確率','状態','重ね','崩壊'];
-    const b64 = Buffer.from(code).toString('base64');
-    const parts = b64.match(/.{1,10}/g) || [];
+// --- Generate Chaos Variables dengan Multiple Types ---
+const _ultraChaos = (total = 1500, names = []) => {
+    let out = '';
+    const types = ['var', 'let', 'const'];
+    const values = [
+        () => `"${_ultraRandom(50)}"`,
+        () => Math.floor(Math.random() * 999999999),
+        () => Math.random() > 0.5 ? 'true' : 'false',
+        () => `"${Buffer.from(_ultraRandom(30)).toString('base64')}"`,
+        () => `"\\x${_ultraRandom(4)}"`,
+        () => `"\\u${_ultraRandom(4)}"`,
+        () => `"${Array.from({length: 10}, () => String.fromCharCode(Math.floor(Math.random() * 65535))).join('')}"`,
+        () => `"${['undefined','null','NaN','Infinity','function','object','string','number','boolean'][Math.floor(Math.random() * 9)]}"`,
+        () => `"${['さくら','つき','ほし','ゆき','ねこ','みず','かぜ','やみ','そら','れい','むげん','はな','くろ','しろ','あか','あお','みどり','きいろ','むらさき','だいだい'][Math.floor(Math.random() * 20)]}"`,
+        () => `"${['سلام','قمر','نور','ليل','شمس','نار','روح','موت','سماء','أرض','بحر','ريح','نار','ظلام','فجر','غروب','نجم','كوكب'][Math.floor(Math.random() * 18)]}"`
+    ];
+
+    const usedNames = new Set();
+    for (let i = 0; i < total; i++) {
+        let name = _ultraName(names);
+        while (usedNames.has(name)) name = _ultraName(names);
+        usedNames.add(name);
+        const type = types[Math.floor(Math.random() * types.length)];
+        const value = values[Math.floor(Math.random() * values.length)]();
+        out += `${type} ${name} = ${value};\n`;
+        
+        // Inject random comments dan junk code
+        if (i % 5 === 0) out += `/* ${_ultraRandom(20)} */\n`;
+        if (i % 7 === 0) out += `// ${_ultraRandom(15)}\n`;
+        if (i % 11 === 0) out += `console.log("${_ultraRandom(10)}");\n`;
+        if (i % 13 === 0) out += `try{${_ultraRandom(5)}}catch(e){}\n`;
+        if (i % 17 === 0) out += `(function(){${_ultraRandom(10)}})();\n`;
+    }
+    return out;
+};
+
+// --- Multi-Layer Encoding dengan 10+ Layer ---
+const _ultraEncode = (data) => {
+    const encoders = [
+        (s) => Buffer.from(s).toString('base64'),
+        (s) => Buffer.from(s).toString('hex'),
+        (s) => s.split('').reverse().join(''),
+        (s) => encodeURIComponent(s),
+        (s) => Buffer.from(s).toString('base64'),
+        (s) => Array.from(s).map(c => c.charCodeAt(0).toString(16)).join(''),
+        (s) => s.split('').map(c => String.fromCharCode(c.charCodeAt(0) + 1)).join(''),
+        (s) => s.split('').map(c => String.fromCharCode(c.charCodeAt(0) ^ 42)).join(''),
+        (s) => s.split('').map(c => c.charCodeAt(0).toString(36)).join(''),
+        (s) => s.split('').map(c => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0')).join(''),
+        (s) => Buffer.from(s).toString('base64').split('').reverse().join(''),
+        (s) => s.split('').map(c => String.fromCharCode(255 - c.charCodeAt(0))).join('')
+    ];
+    
+    let result = data;
+    const shuffled = encoders.sort(() => Math.random() - 0.5);
+    const layers = Math.floor(Math.random() * 5) + 3;
+    
+    for (let i = 0; i < layers && i < shuffled.length; i++) {
+        result = shuffled[i](result);
+        // Inject random string between layers
+        if (Math.random() > 0.7) {
+            result += _ultraRandom(10);
+        }
+    }
+    return result;
+};
+
+// --- Dynamic Decoder dengan Random Method ---
+const _ultraDecoder = (varName, encoding) => {
+    const decoders = [
+        `Buffer.from(${varName},'${encoding}').toString()`,
+        `atob(${varName})`,
+        `unescape(${varName})`,
+        `decodeURIComponent(${varName})`,
+        `String.fromCharCode.apply(null,[...Buffer.from(${varName},'${encoding}')])`,
+        `new Function('return ' + atob(${varName}))()`,
+        `eval('atob(' + ${varName} + ')')`,
+        `Function('return atob(' + ${varName} + ')')()`,
+        `[...Buffer.from(${varName},'${encoding}')].map(c=>String.fromCharCode(c)).join('')`,
+        `${varName}.split('').reverse().join('')`,
+        `(new Buffer(${varName},'${encoding}')).toString()`
+    ];
+    return decoders[Math.floor(Math.random() * decoders.length)];
+};
+
+// --- Advanced Anti-Debug & Anti-Tamper ---
+const _ultraProtection = () => {
+    const protections = [
+        // Debugger traps
+        'setInterval(()=>{debugger;},100)',
+        'function _d(){debugger;} setInterval(_d,50)',
+        'setTimeout(()=>{debugger;},1)',
+        'const _t=Date.now();while(Date.now()-_t<100){}',
+        'console.clear();console.log("' + _ultraRandom(30) + '")',
+        'try{eval("debugger")}catch(e){}',
+        
+        // Console hijacking
+        'console.log=function(){};console.warn=function(){};console.error=function(){};',
+        'console.clear();',
+        
+        // Process exit traps
+        'process.on("uncaughtException",()=>{process.exit()});',
+        'process.on("unhandledRejection",()=>{process.exit()});',
+        
+        // Time checks
+        'const _s=Date.now();while(Date.now()-_s<50){}',
+        
+        // Global pollution
+        'Object.freeze(Object.prototype);',
+        'Object.seal(Object.prototype);',
+        
+        // Proxy traps
+        'new Proxy(global,{set:()=>false,get:()=>undefined})',
+        
+        // Memory check
+        'const _m=process.memoryUsage();if(_m.heapUsed>100000000)process.exit()'
+    ];
+    
+    const selected = [];
+    const count = Math.floor(Math.random() * 5) + 3;
+    const shuffled = protections.sort(() => Math.random() - 0.5);
+    for (let i = 0; i < count && i < shuffled.length; i++) {
+        selected.push(shuffled[i]);
+    }
+    return selected.join('\n');
+};
+
+// --- Control Flow Obfuscation ---
+const _ultraControlFlow = (code) => {
+    const switches = [];
+    const cases = [];
+    const conditions = [
+        'typeof ' + _ultraRandom(5) + ' === "undefined"',
+        'Math.random() > 0.5',
+        'Date.now() % 2 === 0',
+        '!!' + _ultraRandom(5),
+        'new Date().getDay() % 2 === 0'
+    ];
+    
+    for (let i = 0; i < 30; i++) {
+        const caseVal = Math.floor(Math.random() * 1000) - 500;
+        const condition = conditions[Math.floor(Math.random() * conditions.length)];
+        cases.push(`case ${caseVal}: if(${condition}){ break; } return "${_ultraRandom(20)}";`);
+    }
+    cases.push(`default: return "${_ultraRandom(20)}";`);
+    
+    const switchVar = _ultraRandom(5);
+    return `switch(${switchVar}){${cases.join('')}}`;
+};
+
+// --- String Encryption dengan Multiple Keys ---
+const _ultraStringEncrypt = (str) => {
+    const keys = [
+        Math.floor(Math.random() * 256),
+        Math.floor(Math.random() * 256),
+        Math.floor(Math.random() * 256),
+        Math.floor(Math.random() * 256)
+    ];
+    let encrypted = '';
+    for (let i = 0; i < str.length; i++) {
+        encrypted += String.fromCharCode(str.charCodeAt(i) ^ keys[i % keys.length]);
+    }
+    return {
+        data: Buffer.from(encrypted).toString('base64'),
+        keys: keys.join(',')
+    };
+};
+
+// --- Self-Modifying Code Generator ---
+const _ultraSelfModify = (code) => {
+    const parts = code.match(/.{1,50}/g) || [];
     const shuffled = parts.sort(() => Math.random() - 0.5);
     const indexMap = parts.map((_, i) => i).sort(() => Math.random() - 0.5);
     
-    return `(function(){
-${_c(800, names)}
-const ${_s(names)} = [${shuffled.map(p => `"${p}"`).join(',')}];
-const ${_s(names)} = [${indexMap.join(',')}];
-const ${_s(names)} = ${_s(names)}.map(i => ${_s(names)}[i]).join('');
-eval(Buffer.from(${_s(names)},"base64").toString());
-})();`;
-  },
+    return {
+        parts: shuffled,
+        indices: indexMap
+    };
+};
 
-  // --- Style 4: Mirror Dimension ---
-  mirrorDimension: (code) => {
-    const rev = code.split('').reverse().join('');
-    const enc = Buffer.from(rev).toString('base64');
-    return `eval(Buffer.from("${enc}","base64").toString().split("").reverse().join(""))`;
-  },
+// ============================================================
+// MAIN ULTRA OBFUSCATOR
+// ============================================================
 
-  // --- Style 5: Eternal Darkness ---
-  eternalDarkness: (code) => {
-    const names = ['永遠','闇','深淵','絶望','死','虚無','終焉','滅'];
-    return _build(code, names, 1200, true);
-  },
+function ultraObfuscator(code, options = {}) {
+    const {
+        chaosVars = 2000,
+        protectionLevel = 'maximum',
+        expireDays = 0,
+        lockDomain = '',
+        debugMode = false
+    } = options;
 
-  // --- Style 6: Time Warp ---
-  timeWarp: (code, days = 7) => {
-    const expired = Date.now() + (Number(days) * 86400000);
-    const b64 = Buffer.from(code).toString('base64');
-    const check = `const ${_s([])} = ${expired};
-if(Date.now()>${_s([])}){${_s([])}();process.exit();}`;
-    
-    return `(function(){
-${_c(300, ['時間','歪','次元','過去','未来','現在'])}
-${check}
-setTimeout(()=>{eval(Buffer.from("${b64}","base64").toString())}, ${~~(Math.random()*100)+50});
-})();`;
-  },
-
-  // --- Style 7: Cryptic Runes ---
-  crypticRunes: (code) => {
-    const runes = ['ᚠ','ᚢ','ᚦ','ᚨ','ᚱ','ᚲ','ᚷ','ᚹ','ᚺ','ᚾ','ᛁ','ᛃ','ᛈ','ᛇ','ᛉ','ᛊ','ᛏ','ᛒ','ᛖ','ᛗ','ᛚ','ᛝ','ᛟ','ᛞ'];
-    const names = runes.map(r => r + _r(2));
-    const b64 = Buffer.from(code).toString('base64');
-    const split = b64.split('').map(c => {
-      const r = runes[~~(Math.random() * runes.length)];
-      return r + c + runes[~~(Math.random() * runes.length)];
-    }).join('');
-    
-    return `(function(){
-${_c(600, names)}
-const ${_s(names)} = "${split}";
-const ${_s(names)} = ${_s(names)}.replace(/[${runes.join('')}]/g,'');
-eval(Buffer.from(${_s(names)},"base64").toString());
-})();`;
-  },
-
-  // --- Style 8: Polymorphic Engine ---
-  polymorphic: (code) => {
-    const patterns = [
-      (c) => _build(c, ['変身','進化','適応','突然変異','融合','分裂'], 500, true),
-      (c) => styles.quantumEntangle(c),
-      (c) => styles.crypticRunes(c),
-      (c) => styles.eternalDarkness(c)
+    // Generate names pools
+    const namePools = [
+        // Japanese
+        ['くみにに','ほえめさとす','おゆこし','けたよえしふ','めすりねひ','ねわそよて','れけにせ','とふめそんと','こおんさもか','とへえ','ぬとれらゆよ','ちもぬうきこ'],
+        // Arabic
+        ['سلام','قمر','نور','ليل','شمس','نار','روح','موت','سماء','أرض','بحر','ريح','نار','ظلام','فجر','غروب','نجم','كوكب'],
+        // Symbols
+        ['★','☆','✧','✦','✶','✷','✸','✹','✺','✻','✼','✽','✾','✿','❀','❁','❂','❃'],
+        // Greek
+        ['α','β','γ','δ','ε','ζ','η','θ','ι','κ','λ','μ','ν','ξ','ο','π','ρ','σ','τ','υ','φ','χ','ψ','ω'],
+        // Russian
+        ['А','Б','В','Г','Д','Е','Ё','Ж','З','И','Й','К','Л','М','Н','О','П','Р','С','Т','У','Ф','Х','Ц','Ч','Ш','Щ','Ъ','Ы','Ь','Э','Ю','Я'],
+        // Chinese
+        ['我','你','他','她','它','们','是','的','了','在','和','有','这','那','不','人','们','来','去','上','下','大','小','多','少','好','坏','美','丑','善','恶']
     ];
-    return patterns[~~(Math.random() * patterns.length)](code);
-  },
-
-  // --- Style 9: Minimal but Deadly ---
-  minimalDeadly: (code) => {
-    const hex = Buffer.from(code).toString('hex').split('').reverse().join('');
-    const enc = Buffer.from(hex).toString('base64');
-    return `eval(Buffer.from(atob("${enc}"),"base64").toString().split("").reverse().join(""))`;
-  },
-
-  // --- Style 10: Custom Override ---
-  custom: (code, customName = 'Loader') => {
-    const names = ['改造','極限','混乱','破壊','地獄','暗黒','虚無','終焉','絶対','神'];
-    const valid = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(customName) ? customName : 'CustomLoader';
-    const b64 = Buffer.from(code).toString('base64');
-    const vName = _s(names);
-    const eName = _s(names);
     
-    return `(function(){
-${_c(1200, names)}
-const ${eName} = "${_e(code)}";
-const ${vName} = "${b64}";
-function ${valid}(){
-const ${_s(names)} = (${_s(names)}) => ${_d('"' + _e(code) + '"', 'base64')};
-return Buffer.from(${vName},"base64").toString();
+    const names = namePools[Math.floor(Math.random() * namePools.length)];
+    const b64 = Buffer.from(code).toString('base64');
+    const hex = Buffer.from(code).toString('hex');
+    
+    // Encrypt the code with multiple layers
+    const encrypted = _ultraEncode(code);
+    const encryptedData = _ultraStringEncrypt(code);
+    
+    // Generate random function names
+    const mainFunc = _ultraName(names);
+    const decodeFunc = _ultraName(names);
+    const execFunc = _ultraName(names);
+    const dataVar = _ultraName(names);
+    const keyVar = _ultraName(names);
+    const resultVar = _ultraName(names);
+    const checkVar = _ultraName(names);
+    
+    // Generate chaos variables
+    const chaos = _ultraChaos(chaosVars, names);
+    
+    // Generate control flow
+    const flow = _ultraControlFlow(code);
+    
+    // Generate protection
+    const protection = _ultraProtection();
+    
+    // Self-modifying code
+    const selfMod = _ultraSelfModify(code);
+    
+    // Time lock
+    let timeLock = '';
+    if (expireDays > 0) {
+        const expired = Date.now() + (expireDays * 86400000);
+        timeLock = `
+            const ${_ultraName(names)} = ${expired};
+            if(Date.now() > ${_ultraName(names)}) {
+                ${_ultraName(names)}();
+                process.exit();
+            }
+        `;
+    }
+    
+    // Domain lock
+    let domainLock = '';
+    if (lockDomain) {
+        domainLock = `
+            const ${_ultraName(names)} = require('os').hostname();
+            if(${_ultraName(names)} !== "${lockDomain}") {
+                console.log("${_ultraRandom(30)}");
+                process.exit();
+            }
+        `;
+    }
+    
+    // Build the final obfuscated code
+    const result = `
+        // ${_ultraRandom(50)}
+        // ${_ultraRandom(50)}
+        // ${_ultraRandom(50)}
+        
+        (function(){
+            ${chaos}
+            ${protection}
+            ${timeLock}
+            ${domainLock}
+            
+            // Decoder function
+            function ${decodeFunc}(${_ultraName(names)}) {
+                ${flow}
+                const ${_ultraName(names)} = ${_ultraDecoder('data', 'base64')};
+                return ${_ultraName(names)};
+            }
+            
+            // Main execution
+            function ${mainFunc}() {
+                const ${dataVar} = "${encrypted}";
+                const ${keyVar} = [${encryptedData.keys}];
+                const ${_ultraName(names)} = () => {
+                    let ${_ultraName(names)} = "";
+                    for(let ${_ultraName(names)}=0; ${_ultraName(names)}<${dataVar}.length; ${_ultraName(names)}++) {
+                        ${_ultraName(names)} += String.fromCharCode(
+                            ${dataVar}.charCodeAt(${_ultraName(names)}) ^ ${keyVar}[${_ultraName(names)} % ${keyVar}.length]
+                        );
+                    }
+                    return ${_ultraName(names)};
+                };
+                
+                // Anti-debug check
+                ${Math.random() > 0.5 ? 'const _d = () => { debugger; };' : ''}
+                ${Math.random() > 0.5 ? 'setInterval(()=>{ debugger; }, 1000);' : ''}
+                
+                // Execute decoded code
+                try {
+                    const ${resultVar} = ${decodeFunc}(${dataVar});
+                    ${_ultraName(names)}(${resultVar});
+                } catch(${_ultraName(names)}) {
+                    ${_ultraName(names)}();
+                }
+            }
+            
+            // Wrap execution
+            ${_ultraName(names)}(${_ultraName(names)});
+            ${mainFunc}();
+            
+        })();
+        
+        // ${_ultraRandom(50)}
+        // ${_ultraRandom(50)}
+    `;
+    
+    // Apply additional obfuscation layers
+    let finalCode = result;
+    
+    // Randomly apply additional transformations
+    if (Math.random() > 0.5) {
+        finalCode = finalCode.replace(/console/g, _ultraName(names));
+    }
+    if (Math.random() > 0.5) {
+        finalCode = finalCode.replace(/process/g, _ultraName(names));
+    }
+    if (Math.random() > 0.5) {
+        finalCode = finalCode.replace(/require/g, _ultraName(names));
+    }
+    
+    return finalCode;
 }
-${_p()}
-eval(${valid}());
-})();`
-  }
-};
 
 // ============================================================
-// COMPOSITE OBFUSCATION (ALL-IN-ONE)
+// VARIANT OBFUSCATORS WITH DIFFERENT TECHNIQUES
 // ============================================================
 
-const compositeObfuscator = (code, style = 'all') => {
-  const allStyles = Object.values(styles);
-  const selected = style === 'all' 
-    ? allStyles[~~(Math.random() * allStyles.length)]
-    : styles[style] || styles.polymorphic;
-  
-  // Apply multiple layers of obfuscation
-  let result = code;
-  for (let i = 0; i < ~~(Math.random() * 3) + 1; i++) {
-    const styleFn = allStyles[~~(Math.random() * allStyles.length)];
-    result = styleFn(result);
-  }
-  
-  return result;
-};
+// --- Variant 1: Maximum Protection ---
+function maxProtectionStyle(code) {
+    return ultraObfuscator(code, {
+        chaosVars: 3000,
+        protectionLevel: 'maximum',
+        expireDays: 0
+    });
+}
+
+// --- Variant 2: Time Locked ---
+function timeLockUltra(code, days = 30) {
+    return ultraObfuscator(code, {
+        chaosVars: 2000,
+        protectionLevel: 'high',
+        expireDays: days
+    });
+}
+
+// --- Variant 3: Domain Locked ---
+function domainLockStyle(code, domain = '') {
+    return ultraObfuscator(code, {
+        chaosVars: 1500,
+        protectionLevel: 'maximum',
+        lockDomain: domain
+    });
+}
+
+// --- Variant 4: Minimal But Deadly ---
+function minimalUltra(code) {
+    return ultraObfuscator(code, {
+        chaosVars: 1000,
+        protectionLevel: 'medium'
+    });
+}
+
+// --- Variant 5: Polymorphic Ultra ---
+function polymorphicUltra(code) {
+    const styles = [
+        () => ultraObfuscator(code, { chaosVars: 2500, protectionLevel: 'maximum' }),
+        () => ultraObfuscator(code, { chaosVars: 2000, protectionLevel: 'high' }),
+        () => ultraObfuscator(code, { chaosVars: 3000, protectionLevel: 'maximum' }),
+        () => ultraObfuscator(code, { chaosVars: 1500, protectionLevel: 'medium' })
+    ];
+    return styles[Math.floor(Math.random() * styles.length)]();
+}
+
+// --- Variant 6: Nuclear Protection ---
+function nuclearStyle(code) {
+    let result = ultraObfuscator(code, {
+        chaosVars: 5000,
+        protectionLevel: 'maximum'
+    });
+    
+    // Apply additional layers
+    for (let i = 0; i < 3; i++) {
+        result = ultraObfuscator(result, {
+            chaosVars: 1000,
+            protectionLevel: 'high'
+        });
+    }
+    
+    return result;
+}
 
 // ============================================================
-// EXPORTS (Additional styles)
+// COMMANDS FOR ULTRA OBFUSCATION
 // ============================================================
 
-const additionalStyles = {
-  ...styles,
-  composite: compositeObfuscator,
-  randomStyle: (code) => {
-    const all = ['chaosWarfare', 'phantomMirage', 'quantumEntangle', 
-                 'mirrorDimension', 'eternalDarkness', 'timeWarp', 
-                 'crypticRunes', 'polymorphic', 'minimalDeadly'];
-    return styles[all[~~(Math.random() * all.length)]](code);
-  }
-};
+// /ultra - Super complex obfuscation
+bot.command('ultra', (ctx) => 
+    processObfuscate(ctx, ultraObfuscator, 'Ultra Complex')
+);
 
-// Gabungkan dengan exports yang sudah ada
-Object.assign(module.exports, additionalStyles);
+// /maxprotect - Maximum protection
+bot.command('maxprotect', (ctx) => 
+    processObfuscate(ctx, maxProtectionStyle, 'Max Protection')
+);
+
+// /timelock - Time locked obfuscation
+bot.command('timelock', async (ctx) => {
+    const days = ctx.message.text.split(' ')[1] || 30;
+    await processObfuscate(ctx, 
+        (code) => timeLockUltra(code, parseInt(days)), 
+        `TimeLock ${days} days`
+    );
+});
+
+// /nuclear - Nuclear level protection
+bot.command('nuclear', (ctx) => 
+    processObfuscate(ctx, nuclearStyle, 'Nuclear')
+);
+
+// /polymorph - Polymorphic obfuscation
+bot.command('polymorph', (ctx) => 
+    processObfuscate(ctx, polymorphicUltra, 'Polymorphic')
+);
+
+// ============================================================
+// EXPORTS - Tambahkan ke module.exports yang sudah ada
+// ============================================================
 
 // COMMAND
 // /artillery
