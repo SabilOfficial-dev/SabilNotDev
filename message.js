@@ -3,6 +3,7 @@ const fs = require('fs-extra');
 const archiver  = require("archiver")
 const chokidar  = require("chokidar")
 const crypto = require('crypto');
+const { execSync } = require("child_process")
 const { exec } = require("child_process")
 
 function escapeHtml(text = "") {
@@ -10,6 +11,79 @@ function escapeHtml(text = "") {
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
+}
+
+function autoInstall(moduleName) {
+
+    try {
+
+        // cek module
+        require.resolve(moduleName)
+
+        console.log(
+            `MODULE ${moduleName} sudah terinstall`
+        )
+
+    } catch {
+
+        console.log(
+            `INSTALL installing ${moduleName}...`
+        )
+
+        try {
+
+            execSync(
+                `npm install ${moduleName}`,
+                {
+                    stdio: "inherit"
+                }
+            )
+
+            console.log(
+                `SUCCESS ${moduleName} berhasil diinstall`
+            )
+
+        } catch (err) {
+
+            console.log(
+                `PROSES INSTALL ${moduleName}`
+            )
+
+            console.log(
+                err.message
+            )
+        }
+    }
+}
+
+// =============================
+// AUTO INSTALL LIST
+// =============================
+const modules = [
+
+    "crypto",
+    "axios",
+    "fs-extra",
+    "grammy",
+    "moment-timezone",
+    "path",
+    "chokidar",
+    "archiver@5.3.1",
+    "acorn",
+    "os",
+    "vm",
+    "http",
+    "https",
+    "chalk@4",
+    "cheerio"
+]
+
+// =============================
+// RUN AUTO INSTALL
+// =============================
+for (const mod of modules) {
+
+    autoInstall(mod)
 }
 const axios = require('axios')
 const os = require('os')
@@ -25,6 +99,11 @@ const moment = require("moment-timezone")
 const config = require('./config');
 const updater = require("./updater");
 const updateLink = require("./updatelink");
+
+// =============================
+// BASE DIRECTORY
+// =============================
+const BASE_DIR = __dirname;
 
 console.clear()
 console.log(chalk.green(`
@@ -880,801 +959,7 @@ async function sendEncryptProgress(ctx, waitMsg, modeName) {
     }
 }
 
-// ============================================================
-// ==================== FUNGSI ENKRIPSI ========================
-// ============================================================
-function randomHex(length = 40) {
-    return crypto.randomBytes(Math.ceil(length / 2)).toString('hex').slice(0, length);
-}
-
-function randomName(list) {
-    const extra = ["ツ", "々", "〆", "メ", "ん", "ฬ", "刃", "幻", "零", "鬼", "魔", "神", "龍", "風", "月", "闇", "死", "星", "空", "海", "火", "水", "地", "天", "無", "極", "滅", "絶", "獄", "冥", "虚", "沌"];
-    return list[Math.floor(Math.random() * list.length)] +
-        extra[Math.floor(Math.random() * extra.length)] +
-        Math.floor(Math.random() * 99999);
-}
-
-function generateRandomArray(count = 400) {
-    const types = [
-        () => Math.floor(Math.random() * 4294967296),
-        () => Math.random() > 0.5 ? "true" : "false",
-        () => `"${randomHex(Math.floor(Math.random() * 30) + 5)}"`,
-        () => `"\\u${randomHex(4)}"`,
-        () => `"\\x${randomHex(2)}"`,
-        () => `"${["Invalid", "undefined", "null", "function", "object", "string", "number", "boolean"][Math.floor(Math.random() * 8)]}"`,
-        () => Math.random() > 0.5 ? "null" : "undefined",
-        () => Math.floor(Math.random() * 65536),
-        () => `"${String.fromCharCode(Math.floor(Math.random() * 65535))}"`,
-        () => `"${["byte", "index", "content", "message", "error", "reply", "update", "parse", "mode", "HTML", "markup", "text", "style", "success", "memory", "usage", "owner", "seller", "time", "now", "chat", "answer", "call", "show", "alert", "wait", "start", "join", "leave", "welcome", "goodbye"][Math.floor(Math.random() * 30)]}"`,
-        () => `"${["さくら", "つき", "ほし", "ゆき", "ねこ", "みず", "かぜ", "やみ", "そら", "れい", "むげん", "はな", "くろ", "しろ", "あか", "あお", "みどり", "きいろ", "むらさき", "だいだい"][Math.floor(Math.random() * 20)]}"`
-    ];
-
-    const elements = [];
-    for (let i = 0; i < count; i++) {
-        const type = types[Math.floor(Math.random() * types.length)];
-        elements.push(type());
-    }
-    return elements.join(',');
-}
-
-function generateSwitchCases(count = 50) {
-    let cases = [];
-    const operators = ["+", "-", "*", "/", "%", "&", "|", "^", "<<", ">>", ">>>"];
-    const comparisons = ["===", "!==", ">", "<", ">=", "<=", "==", "!="];
-    const names = ["temp", "val", "data", "res", "obj", "ctx", "env", "scope", "global", "result", "output", "input"];
-
-    for (let i = 0; i < count; i++) {
-        const caseVal = Math.floor(Math.random() * 500) - 200;
-        const hasReturn = Math.random() > 0.4;
-        const hasWith = Math.random() > 0.3;
-        const hasBreak = Math.random() > 0.5;
-        const hasIf = Math.random() > 0.4;
-        const hasNestedSwitch = Math.random() > 0.7;
-
-        let caseBlock = [`case ${caseVal}:`];
-
-        if (hasIf) {
-            const var1 = randomName(names);
-            const op = comparisons[Math.floor(Math.random() * comparisons.length)];
-            const val = Math.floor(Math.random() * 1000);
-            caseBlock.push(`if(${var1} ${op} ${val}){`);
-            caseBlock.push(`${randomName(["x", "y", "z", "a", "b", "c"])}=${randomName(["true", "false", "null", "undefined"])};`);
-            if (Math.random() > 0.5) {
-                caseBlock.push(`return ${randomName(["true", "false", "null", "undefined", "0", "1"])};`);
-            }
-            caseBlock.push(`break;`);
-            caseBlock.push(`}`);
-        }
-
-        if (hasWith) {
-            const objName = randomName(["obj", "ctx", "scope", "env", "global"]);
-            caseBlock.push(`with(${objName}["${randomHex(8)}"]||${objName}){`);
-            caseBlock.push(`${randomName(["temp", "val"])}=${randomName(["true", "false", "null", "undefined"])};`);
-            if (Math.random() > 0.5) {
-                caseBlock.push(`return ${randomName(["true", "false", "null", "undefined", "0", "1"])};`);
-            }
-            caseBlock.push(`break;`);
-            caseBlock.push(`}`);
-        }
-
-        if (hasNestedSwitch) {
-            const nestedVar = randomName(["x", "y", "z"]);
-            caseBlock.push(`switch(${nestedVar}){`);
-            for (let j = 0; j < 5; j++) {
-                const nVal = Math.floor(Math.random() * 100) - 50;
-                caseBlock.push(`case ${nVal}:`);
-                caseBlock.push(`${randomName(["temp", "val"])}=${randomName(["true", "false", "null", "undefined"])};`);
-                caseBlock.push(`break;`);
-            }
-            caseBlock.push(`default: ${randomName(["temp", "val"])}=${randomName(["true", "false", "null", "undefined"])};`);
-            caseBlock.push(`}`);
-        }
-
-        if (hasReturn) {
-            const returnVal = Math.random() > 0.5 ?
-                `"${randomHex(20)}"` :
-                `${randomName(["true", "false", "null", "undefined", "0", "1", "Math.PI", "Math.E"])}`;
-            caseBlock.push(`return ${returnVal};`);
-        }
-
-        if (hasBreak && !hasReturn) {
-            caseBlock.push(`break;`);
-        }
-
-        // Tambahkan encoded string check
-        if (Math.random() > 0.8) {
-            caseBlock.push(`if(!("${randomHex(6)}" in ${randomName(["obj", "ctx"])}) && "${randomHex(6)}" in ${randomName(["global", "window"])}){`);
-            caseBlock.push(`${randomName(["x", "y", "z"])}=${randomName(["true", "false"])};`);
-            caseBlock.push(`}`);
-        }
-
-        // Tambahkan anonymous function
-        if (Math.random() > 0.6) {
-            caseBlock.push(`(function(){${randomName(["x", "y", "z"])}=${randomName(["true", "false", "null", "undefined"])};})();`);
-        }
-
-        cases.push(caseBlock.join('\n'));
-    }
-
-    cases.push(`default: return ${randomName(["true", "false", "null", "undefined", "0", "1"])};`);
-
-    return cases.join('\n');
-}
-
-function generateNestedFunctions(depth = 4) {
-    let result = '';
-    const names = ["くみにに", "ほえめさとす", "おゆこし", "けたよえしふ", "めすりねひ", "ねわそよて",
-        "れけにせ", "とふめそんと", "こおんさもか", "とへえ", "ぬとれらゆよ", "ちもぬうきこ",
-        "にろみれり", "すあほやみね", "たむねと", "ゆけぬゆ", "けわふてあり", "そにし",
-        "をてさみへ", "もにむか", "あひきせる", "さをほせ", "みかたる", "ぬまなもなく",
-        "らのおんほ", "をけなわみ", "むすなぬう", "めいのこ", "るけぬ", "いうによね",
-        "こんらに", "せそちひ", "ぬよむよ", "ろよいぬ", "えへちぬ", "たよさふも"
-    ];
-
-    for (let d = 0; d < depth; d++) {
-        const funcName = randomName(names);
-        const paramCount = Math.floor(Math.random() * 5) + 2;
-        const params = [];
-        for (let p = 0; p < paramCount; p++) {
-            params.push(randomName(names));
-        }
-
-        const isGenerator = Math.random() > 0.4;
-        const funcKeyword = isGenerator ? 'function*' : 'function';
-        const hasReturn = Math.random() > 0.3;
-
-        result += `${funcKeyword} ${funcName}(${params.join(',')}){\n`;
-
-        // Random var declarations
-        for (let i = 0; i < 10; i++) {
-            const varName = randomName(names);
-            const val = Math.random() > 0.5 ?
-                `"${randomHex(20)}"` :
-                `${randomName(["true", "false", "null", "undefined", "0", "1", "Math.random()", "Date.now()"])}`;
-            result += `var ${varName}=${val};\n`;
-        }
-
-        // With block
-        if (Math.random() > 0.5) {
-            result += `with(${randomName(["obj", "ctx", "scope"])}["${randomHex(8)}"]||${randomName(["obj", "ctx", "scope"])}){\n`;
-            result += `${randomName(["x", "y", "z"])}=${randomName(["true", "false", "null", "undefined"])};\n`;
-            result += `}\n`;
-        }
-
-        // Switch cases
-        result += `switch(${randomName(["x", "y", "z", "a", "b", "c"])}){\n`;
-        result += generateSwitchCases(15);
-        result += `}\n`;
-
-        // If condition with encoded strings
-        if (Math.random() > 0.6) {
-            result += `if(!("${randomHex(6)}" in ${randomName(["obj", "ctx"])}) && "${randomHex(6)}" in ${randomName(["global", "window"])}){\n`;
-            result += `${randomName(["x", "y", "z"])}=${randomName(["true", "false"])};\n`;
-            result += `}\n`;
-        }
-
-        if (hasReturn) {
-            result += `return ${randomName(["true", "false", "null", "undefined", "0", "1", "Math.PI", "Math.E"])};\n`;
-        }
-
-        result += `}\n`;
-    }
-
-    return result;
-}
-
-function generateObjectWithGetters(count = 15) {
-    let result = '{';
-    const names = ["get", "set", "value", "data", "result", "status", "error", "message", "reply", "update",
-        "info", "config", "settings", "options", "params", "args", "input", "output", "temp", "cache"];
-
-    for (let i = 0; i < count; i++) {
-        const propName = randomHex(8);
-        const getterName = randomName(names);
-        const hasGetter = Math.random() > 0.3;
-        const hasSetter = Math.random() > 0.5;
-
-        if (hasGetter) {
-            result += `get["${propName}"](){return ${randomName(["true", "false", "null", "undefined", "0", "1"])};},`;
-        }
-        if (hasSetter) {
-            result += `set["${propName}"](${randomName(["val", "data", "input"])}){${randomName(["this", "self", "ctx"])}[${randomName(["value", "data", "result"])}]=${randomName(["val", "data", "input"])};},`;
-        }
-        if (Math.random() > 0.5) {
-            result += `["${randomHex(6)}"](...${randomName(["args", "params", "data"])}){return ${randomName(["true", "false", "null", "undefined", "0", "1"])};},`;
-        }
-    }
-
-    result += '}';
-    return result;
-}
-
-function generateEncodedStrings(count = 30) {
-    let result = '';
-    const encodings = ['\\u', '\\x', '\\0'];
-    for (let i = 0; i < count; i++) {
-        const str = randomHex(Math.floor(Math.random() * 30) + 5);
-        let encoded = '';
-        for (const char of str) {
-            const encoding = encodings[Math.floor(Math.random() * encodings.length)];
-            encoded += encoding + char.charCodeAt(0).toString(16).padStart(4, '0');
-        }
-        result += `"${encoded}",`;
-    }
-    return result;
-}
-
-function generateChaosVars(total = 500, names = []) {
-    let out = "";
-    const usedNames = new Set();
-    for (let i = 0; i < total; i++) {
-        let name = randomName(names);
-        while (usedNames.has(name)) {
-            name = randomName(names);
-        }
-        usedNames.add(name);
-        const value = randomHex(40 + Math.floor(Math.random() * 80));
-        out += `var ${name}="${value}";\n`;
-    }
-    return out;
-}
-
-function generateWithBlocks(count = 15) {
-    let result = '';
-    const names = ["obj", "ctx", "scope", "env", "global", "window", "self", "this", "data", "config"];
-    for (let i = 0; i < count; i++) {
-        const objName = randomName(names);
-        const propName = randomHex(4);
-        result += `with(${objName}["${propName}"]||${objName}){\n`;
-        result += `${randomName(["temp", "val", "data", "res"])}=${randomName(["true", "false", "null", "undefined"])};\n`;
-        if (Math.random() > 0.5) {
-            result += `return ${randomName(["true", "false", "null", "undefined", "0", "1"])};\n`;
-        }
-        result += `}\n`;
-    }
-    return result;
-}
-
-// ==================== MAIN OBFUSCATION FUNCTIONS ====================
-
-function japanStyle(code) {
-    const jpNames = [
-        "くみにに", "ほえめさとす", "おゆこし", "けたよえしふ", "めすりねひ", "ねわそよて",
-        "れけにせ", "とふめそんと", "こおんさもか", "とへえ", "ぬとれらゆよ", "ちもぬうきこ",
-        "にろみれり", "すあほやみね", "たむねと", "ゆけぬゆ", "けわふてあり", "そにし",
-        "をてさみへ", "もにむか", "あひきせる", "さをほせ", "みかたる", "ぬまなもなく",
-        "らのおんほ", "をけなわみ", "むすなぬう", "めいのこ", "るけぬ", "いうによね",
-        "こんらに", "せそちひ", "ぬよむよ", "ろよいぬ", "えへちぬ", "たよさふも",
-        "ひきすらんき", "にかむのる", "ちそや", "ちえに", "ちしまつろ", "りはえ",
-        "よけや", "しらやつほせ", "ほぬれきや", "えはに", "よひはへめよ", "ももちおきま"
-    ];
-
-    const b64 = Buffer.from(code).toString('base64');
-    const mainFunc = randomName(jpNames);
-    const decoderFunc = randomName(jpNames);
-    const dataArray = randomName(jpNames);
-    const wrapperFunc = randomName(jpNames);
-    const constName = randomName(jpNames);
-
-    const arrayElements = generateRandomArray(350);
-    const nestedFuncs = generateNestedFunctions(5);
-    const switchCases = generateSwitchCases(50);
-    const objWithGetters = generateObjectWithGetters(15);
-    const encodedStrings = generateEncodedStrings(30);
-    const chaosVars = generateChaosVars(1500, jpNames);
-    const withBlocks = generateWithBlocks(20);
-
-    return `function ${mainFunc}(${randomName(jpNames)},${randomName(jpNames)}){for(var ${randomName(jpNames)}=0;${randomName(jpNames)}<${randomName(jpNames)};${randomName(jpNames)}++){${randomName(jpNames)}["\\u0070\\u0075\\u0073\\u0068"](${randomName(jpNames)}["\\u0073\\u0068\\u0069\\u0066\\u0074"]())}return ${randomName(jpNames)}}const ${dataArray}=[${arrayElements}];function ${decoderFunc}(){${chaosVars}${nestedFuncs}${withBlocks}switch(${randomName(jpNames)}){${switchCases}}${objWithGetters}}function ${randomName(jpNames)}(${randomName(jpNames)},${randomName(jpNames)}){${withBlocks}switch(${randomName(jpNames)}){${generateSwitchCases(30)}}}function ${randomName(jpNames)}(){}function ${randomName(jpNames)}(${randomName(jpNames)},${randomName(jpNames)}){function*${randomName(jpNames)}(${randomName(jpNames)},${randomName(jpNames)},${randomName(jpNames)},{["${randomHex(8)}"]:{}}){while(${randomName(jpNames)}+${randomName(jpNames)}+${randomName(jpNames)}!==${Math.floor(Math.random() * 300) + 100}){with(${randomName(jpNames)}["${randomHex(8)}"]||${randomName(jpNames)}){switch(${randomName(jpNames)}+${randomName(jpNames)}+${randomName(jpNames)}){${generateSwitchCases(40)}default:return undefined;${generateSwitchCases(20)}}}}}${generateObjectWithGetters(12)}eval(${decoderFunc}("${b64}"));
-`;
-}
-
-function hardcoreStyle(code) {
-    const names = ["悪魔", "闇", "無限", "崩壊", "零", "死神", "幻", "滅", "虚", "無", "天", "地", "人", "鬼", "神", "魔", "龍", "鳳", "虎", "狼", "獄", "冥", "絶", "極"];
-    const b64 = Buffer.from(code).toString('base64');
-    const funcName = randomName(names);
-    const varName = randomName(names);
-    const wrapper = randomName(names);
-    const chaosVars = generateChaosVars(2000, names);
-    const nestedFuncs = generateNestedFunctions(6);
-    const switchCases = generateSwitchCases(60);
-    const objGetters = generateObjectWithGetters(20);
-    const withBlocks = generateWithBlocks(30);
-    const encodedStrings = generateEncodedStrings(40);
-
-    return `(function(){${chaosVars}${nestedFuncs}${withBlocks}setInterval(()=>{${generateSwitchCases(15)}},${Math.floor(Math.random() * 100) + 1})
-console.clear()
-function ${funcName}(){ ${switchCases}${objGetters}const ${varName}="${b64}";${generateObjectWithGetters(10)}return Buffer.from(${varName},"base64").toString(); } ${withBlocks} eval(${funcName}());
-})();`;
-}
-
-function phantomStyle(code) {
-    const hex = Buffer.from(code).toString("hex");
-    const names = ["幻", "影", "霊", "鬼", "闇", "月", "花", "星", "風", "雲", "雷", "電", "光", "影", "夢", "幻", "虚", "空", "無", "極"];
-    const funcName = randomName(names);
-    const varName = randomName(names);
-    const chaosVars = generateChaosVars(800, names);
-    const nestedFuncs = generateNestedFunctions(3);
-    const switchCases = generateSwitchCases(30);
-    const withBlocks = generateWithBlocks(10);
-
-    return `(function(){ ${chaosVars} ${nestedFuncs} ${withBlocks} function ${funcName}(){ ${switchCases} ${withBlocks} return eval(Buffer.from("${hex}","hex").toString()); } ${funcName}();
-})();`;
-}
-
-function balancedStyle(code) {
-    const names = ["均衡", "静", "風", "月", "水", "火", "地", "天", "和", "平", "調", "和", "均", "衡", "安", "定"];
-    const b64 = Buffer.from(code).toString("base64");
-    const funcName = randomName(names);
-    const varName = randomName(names);
-    const chaosVars = generateChaosVars(500, names);
-    const nestedFuncs = generateNestedFunctions(3);
-    const switchCases = generateSwitchCases(25);
-    const withBlocks = generateWithBlocks(10);
-
-    return `(function(){ ${chaosVars} ${nestedFuncs} ${withBlocks} function ${funcName}(){ ${switchCases}
-const ${varName}="${b64}"; ${generateObjectWithGetters(8)} return Buffer.from(${varName},"base64").toString();
-}
-eval(${funcName}());
-})();`;
-}
-
-function reversedStyle(code) {
-    const rev = code.split("").reverse().join("");
-    const names = ["逆", "転", "反", "裏", "鏡", "映", "倒", "立", "回", "転", "反", "転", "逆", "行", "逆", "流"];
-    const funcName = randomName(names);
-    const varName = randomName(names);
-    const chaosVars = generateChaosVars(400, names);
-    const nestedFuncs = generateNestedFunctions(3);
-    const switchCases = generateSwitchCases(25);
-    const withBlocks = generateWithBlocks(8);
-
-    return `(function(){ ${chaosVars} ${nestedFuncs} ${withBlocks}
-function ${funcName}(){ ${switchCases} ${withBlocks} return eval("${rev}".split("").reverse().join(""));
-} ${funcName}();
-})();`;
-}
-
-function rosemaryStyle(code) {
-    const names = ["薔薇", "深夜", "死", "夢", "闇", "月", "花", "棘", "刺", "香", "毒", "血", "涙", "静", "寂", "哀", "絶", "望"];
-    const b64 = Buffer.from(code).toString("base64");
-    const funcName = randomName(names);
-    const varName = randomName(names);
-    const chaosVars = generateChaosVars(1200, names);
-    const nestedFuncs = generateNestedFunctions(5);
-    const switchCases = generateSwitchCases(35);
-    const withBlocks = generateWithBlocks(15);
-    const objGetters = generateObjectWithGetters(12);
-
-    return `(function(){ ${chaosVars} ${nestedFuncs} ${withBlocks}
-function ${funcName}(){ ${switchCases} ${objGetters} const ${varName}="${b64}"; ${generateObjectWithGetters(8)} return Buffer.from(${varName},"base64").toString();
-}
-eval(${funcName}());
-})();`;
-}
-
-function invisStyle(code) {
-    const uni = escape(Buffer.from(code).toString("base64"));
-    const names = ["透", "明", "隠", "秘", "影", "像", "空", "気", "風", "霧", "霞", "幻", "虚", "無", "色", "消", "失"];
-    const funcName = randomName(names);
-    const varName = randomName(names);
-    const chaosVars = generateChaosVars(600, names);
-    const nestedFuncs = generateNestedFunctions(3);
-    const switchCases = generateSwitchCases(30);
-    const withBlocks = generateWithBlocks(12);
-
-    return `(function(){ ${chaosVars} ${nestedFuncs} ${withBlocks}
-function ${funcName}(){ ${switchCases} ${withBlocks} return eval(Buffer.from(unescape("${uni}"),"base64").toString());
-}
-${funcName}();
-})();`;
-}
-
-function arabStyle(code) {
-    const names = ["سلام", "قمر", "نور", "ليل", "شمس", "نار", "روح", "موت", "سماء", "أرض", "بحر", "ريح", "نار", "ظلام", "فجر", "غروب", "نجم", "كوكب"];
-    const b64 = Buffer.from(code).toString("base64");
-    const funcName = randomName(names);
-    const varName = randomName(names);
-    const chaosVars = generateChaosVars(900, names);
-    const nestedFuncs = generateNestedFunctions(4);
-    const switchCases = generateSwitchCases(35);
-    const withBlocks = generateWithBlocks(15);
-    const objGetters = generateObjectWithGetters(10);
-
-    return `(function(){ ${chaosVars} ${nestedFuncs} ${withBlocks}
-function ${funcName}(){ ${switchCases} ${objGetters}
-const ${varName}="${b64}"; ${generateObjectWithGetters(6)}
-return Buffer.from(${varName},"base64").toString();
-}
-eval(${funcName}());
-})();`;
-}
-
-function siuStyle(code) {
-    const names = ["SIUU", "RONALDO", "GOAL", "CR7", "MESSI", "NEYMAR", "MBAPPE", "BENZEMA", "MODRIC", "RONALDINHO", "BALE", "RAMOS", "PEPE", "CASILLAS"];
-    const b64 = Buffer.from(code).toString("base64");
-    const funcName = randomName(names);
-    const varName = randomName(names);
-    const chaosVars = generateChaosVars(600, names);
-    const nestedFuncs = generateNestedFunctions(3);
-    const switchCases = generateSwitchCases(25);
-    const withBlocks = generateWithBlocks(10);
-
-    return `(function(){ ${chaosVars} ${nestedFuncs} ${withBlocks} function ${funcName}(){
-${switchCases} ${withBlocks}
-const ${varName}="${b64}";
-${generateObjectWithGetters(6)} return Buffer.from(${varName},"base64").toString(); }
-eval(${funcName}());
-})();`;
-}
-
-function nebulaStyle(code) {
-    const names = ["星雲", "宇宙", "銀河", "闇", "ブラック", "無限", "ゼロ", "時空", "次元", "天体", "恒星", "惑星", "彗星", "星団", "超新星", "ブラックホール"];
-    const b64 = Buffer.from(code).toString("base64");
-    const funcName = randomName(names);
-    const varName = randomName(names);
-    const chaosVars = generateChaosVars(2500, names);
-    const nestedFuncs = generateNestedFunctions(6);
-    const switchCases = generateSwitchCases(50);
-    const withBlocks = generateWithBlocks(25);
-    const objGetters = generateObjectWithGetters(20);
-
-    return `(function(){ ${chaosVars} ${nestedFuncs} ${withBlocks}
-function ${funcName}(){ ${switchCases} ${objGetters} const ${varName}="${b64}"; ${generateObjectWithGetters(15)} return Buffer.from(${varName},"base64").toString();
-} eval(${funcName}());
-})();`;
-}
-
-function varStyle(code) {
-    const names = ["実行", "起動", "操作", "制御", "処理", "変換", "生成", "破壊", "創造", "終了", "開始", "停止", "変更", "更新", "削除", "追加"];
-    const funcName = randomName(names);
-    const varName = randomName(names);
-    const chaosVars = generateChaosVars(200, names);
-    const nestedFuncs = generateNestedFunctions(2);
-    const switchCases = generateSwitchCases(15);
-    const withBlocks = generateWithBlocks(5);
-
-    return `(function(){ ${chaosVars} ${nestedFuncs} ${withBlocks}
-function ${funcName}(){ ${switchCases} ${withBlocks} ${code}
-} ${funcName}();
-})();`;
-}
-
-function customStyle(code, name) {
-    const names = ["改造", "極限", "混乱", "破壊", "地獄", "暗黒", "虚無", "創生", "終焉", "絶望", "希望", "混沌", "秩序", "均衡", "無限", "永劫"];
-    const b64 = Buffer.from(code).toString("base64");
-    const funcName = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name) ? name : "CustomLoader";
-    const varName = randomName(names);
-    const chaosVars = generateChaosVars(1800, names);
-    const nestedFuncs = generateNestedFunctions(5);
-    const switchCases = generateSwitchCases(45);
-    const withBlocks = generateWithBlocks(20);
-    const objGetters = generateObjectWithGetters(15);
-
-    return `(function(){
-${chaosVars}
-${nestedFuncs}
-${withBlocks}
-function ${funcName}(){
-${switchCases} ${objGetters} const ${varName}="${b64}"; ${generateObjectWithGetters(10)} return Buffer from(${varName},"base64").toString();
-} eval(${funcName}());
-})();`;
-}
-    
-function timeLockStyle(code, days) {
-    const expired = Date.now() + (Number(days) * 86400000);
-    const b64 = Buffer.from(code).toString("base64");
-    const names = ["時", "限", "鎖", "刻", "永", "久", "瞬", "間", "光", "陰", "流", "転", "過", "去", "未", "来", "現", "在"];
-    const funcName = randomName(names);
-    const varName = randomName(names);
-    const chaosVars = generateChaosVars(500, names);
-    const nestedFuncs = generateNestedFunctions(3);
-    const switchCases = generateSwitchCases(25);
-    const withBlocks = generateWithBlocks(10);
-
-    return `(function(){ ${chaosVars} ${nestedFuncs} ${withBlocks}
-function ${funcName}(){ ${switchCases} ${withBlocks} if(Date.now()>${expired}){ ${generateSwitchCases(10)}
-console.log("${randomHex(30)}");
-process.exit();
-} ${generateSwitchCases(15)} eval(Buffer.from("${b64}","base64").toString());
-} ${funcName}();
-})();`;
-}
-
-// ==================== EKSPOR ====================
-module.exports = {
-    japanStyle,
-    hardcoreStyle,
-    phantomStyle,
-    balancedStyle,
-    reversedStyle,
-    rosemaryStyle,
-    invisStyle,
-    arabStyle,
-    siuStyle,
-    nebulaStyle,
-    varStyle,
-    customStyle,
-    timeLockStyle,
-    randomHex,
-    randomName,
-    generateChaosVars,
-    generateSwitchCases,
-    generateRandomArray,
-    generateNestedFunctions,
-    generateObjectWithGetters,
-    generateEncodedStrings,
-    generateWithBlocks
-};
-
-// ============================================================
-// CORE OBFUSCATION ENGINE - ENHANCED VERSION
-// ============================================================
-
-// --- Layer 1: Random Chaos Generator ---
-const _r = (l = 40) => require('crypto').randomBytes(l).toString('hex');
-const _s = (a) => {
-  const e = ['ツ','々','〆','メ','ん','ฬ','刃','丿','卍','卐','꧁','꧂','༄','༅','༆','༇','༈','༉'];
-  return a[~~(Math.random() * a.length)] + 
-         e[~~(Math.random() * e.length)] + 
-         ~~(Math.random() * 99999) + 
-         String.fromCharCode(~~(Math.random() * 26) + 97);
-};
-
-// --- Layer 2: Enhanced Chaos Variables ---
-const _c = (t = 500, n = []) => {
-  let o = '', x = 0;
-  const p = ['const','let','var'];
-  while (x < t) {
-    const k = p[~~(Math.random() * p.length)];
-    const v = _s(n);
-    const h = _r(~~(Math.random() * 60) + 40);
-    const d = ~~(Math.random() * 50) + 10;
-    o += `${k} ${v} = "${h}";\n`;
-    if (x % 7 === 0) o += `/* ${_r(15)} */\n`;
-    if (x % 13 === 0) o += `// ${_r(20)}\n`;
-    x++;
-  }
-  return o + `\n// ${_r(30)}\n`;
-};
-
-// --- Layer 3: Multi-layer Encoding ---
-const _e = (c) => {
-  const layers = [
-    (s) => Buffer.from(s).toString('base64'),
-    (s) => Buffer.from(s).toString('hex'),
-    (s) => s.split('').reverse().join(''),
-    (s) => encodeURIComponent(s),
-    (s) => Buffer.from(s).toString('base64').split('').reverse().join('')
-  ];
-  let r = c;
-  const shuffle = layers.sort(() => Math.random() - 0.5);
-  shuffle.forEach((fn, i) => {
-    if (i % 2 === 0) r = fn(r);
-    else r = Buffer.from(r).toString('base64');
-  });
-  return r;
-};
-
-// --- Layer 4: Dynamic Decoder ---
-const _d = (c, t) => {
-  const decoders = [
-    `Buffer.from(${c},'${t}').toString()`,
-    `atob(${c})`,
-    `unescape(${c})`,
-    `decodeURIComponent(${c})`,
-    `String.fromCharCode.apply(null,[...Buffer.from(${c},'${t}')])`
-  ];
-  return decoders[~~(Math.random() * decoders.length)];
-};
-
-// --- Layer 5: Anti-Debug & Protection ---
-const _p = () => {
-  const checks = [];
-  const patterns = [
-    'setInterval(()=>{debugger;},100)',
-    'function _d(){debugger;} setInterval(_d,50)',
-    'const _t=Date.now();while(Date.now()-_t<100){}',
-    'console.clear();console.log("' + _r(30) + '")',
-    'try{eval("debugger")}catch(e){}'
-  ];
-  for (let i = 0; i < ~~(Math.random() * 5) + 2; i++) {
-    checks.push(patterns[~~(Math.random() * patterns.length)]);
-  }
-  return checks.join('\n');
-};
-
-// --- Layer 6: Obfuscated Function Builder ---
-const _build = (code, names, count = 500, isHard = false) => {
-  const b64 = Buffer.from(code).toString('base64');
-  const fName = _s(names);
-  const vName = _s(names);
-  const eName = _s(names);
-  const encoded = _e(code);
-  
-  let result = `(function(){
-${_c(count, names)}
-${_p()}
-const ${eName} = ${_d('"' + encoded + '"', 'base64')};
-const ${vName} = "${b64}";
-function ${fName}(){
-${isHard ? `let ${_s(names)} = 0;\nwhile(${_s(names)} < 100) ${_s(names)}++;\n` : ''}
-${isHard ? `try{${_s(names)}}catch(${_s(names)}){}` : ''}
-return Buffer.from(${vName}, "base64").toString();
-}
-${isHard ? `const ${_s(names)} = () => { eval(${fName}()) };` : ''}
-eval(${fName}());
-})();`;
-  
-  if (isHard) {
-    result = result.replace(/eval/g, 'Function("return " + arguments[0])()');
-    result = result.replace(/Buffer/g, 'require("buffer").Buffer');
-  }
-  
-  return result;
-};
-
-// ============================================================
-// EXPORTED OBFUSCATION FUNCTIONS
-// ============================================================
-
-const styles = {
-  // --- Style 1: Chaos Warfare ---
-  chaosWarfare: (code) => {
-    const names = ['混沌','戦争','破壊','暗黒','無限','虚無','絶対','神'];
-    return _build(code, names, 750, true);
-  },
-
-  // --- Style 2: Phantom Mirage ---
-  phantomMirage: (code) => {
-    const hex = Buffer.from(code).toString('hex');
-    const shuffled = hex.split('').sort(() => Math.random() - 0.5).join('');
-    return `eval(Buffer.from("${shuffled}","hex").toString())`;
-  },
-
-  // --- Style 3: Quantum Entanglement ---
-  quantumEntangle: (code) => {
-    const names = ['量子','粒子','波動','観測','確率','状態','重ね','崩壊'];
-    const b64 = Buffer.from(code).toString('base64');
-    const parts = b64.match(/.{1,10}/g) || [];
-    const shuffled = parts.sort(() => Math.random() - 0.5);
-    const indexMap = parts.map((_, i) => i).sort(() => Math.random() - 0.5);
-    
-    return `(function(){
-${_c(800, names)}
-const ${_s(names)} = [${shuffled.map(p => `"${p}"`).join(',')}];
-const ${_s(names)} = [${indexMap.join(',')}];
-const ${_s(names)} = ${_s(names)}.map(i => ${_s(names)}[i]).join('');
-eval(Buffer.from(${_s(names)},"base64").toString());
-})();`;
-  },
-
-  // --- Style 4: Mirror Dimension ---
-  mirrorDimension: (code) => {
-    const rev = code.split('').reverse().join('');
-    const enc = Buffer.from(rev).toString('base64');
-    return `eval(Buffer.from("${enc}","base64").toString().split("").reverse().join(""))`;
-  },
-
-  // --- Style 5: Eternal Darkness ---
-  eternalDarkness: (code) => {
-    const names = ['永遠','闇','深淵','絶望','死','虚無','終焉','滅'];
-    return _build(code, names, 1200, true);
-  },
-
-  // --- Style 6: Time Warp ---
-  timeWarp: (code, days = 7) => {
-    const expired = Date.now() + (Number(days) * 86400000);
-    const b64 = Buffer.from(code).toString('base64');
-    const check = `const ${_s([])} = ${expired};
-if(Date.now()>${_s([])}){${_s([])}();process.exit();}`;
-    
-    return `(function(){
-${_c(300, ['時間','歪','次元','過去','未来','現在'])}
-${check}
-setTimeout(()=>{eval(Buffer.from("${b64}","base64").toString())}, ${~~(Math.random()*100)+50});
-})();`;
-  },
-
-  // --- Style 7: Cryptic Runes ---
-  crypticRunes: (code) => {
-    const runes = ['ᚠ','ᚢ','ᚦ','ᚨ','ᚱ','ᚲ','ᚷ','ᚹ','ᚺ','ᚾ','ᛁ','ᛃ','ᛈ','ᛇ','ᛉ','ᛊ','ᛏ','ᛒ','ᛖ','ᛗ','ᛚ','ᛝ','ᛟ','ᛞ'];
-    const names = runes.map(r => r + _r(2));
-    const b64 = Buffer.from(code).toString('base64');
-    const split = b64.split('').map(c => {
-      const r = runes[~~(Math.random() * runes.length)];
-      return r + c + runes[~~(Math.random() * runes.length)];
-    }).join('');
-    
-    return `(function(){
-${_c(600, names)}
-const ${_s(names)} = "${split}";
-const ${_s(names)} = ${_s(names)}.replace(/[${runes.join('')}]/g,'');
-eval(Buffer.from(${_s(names)},"base64").toString());
-})();`;
-  },
-
-  // --- Style 8: Polymorphic Engine ---
-  polymorphic: (code) => {
-    const patterns = [
-      (c) => _build(c, ['変身','進化','適応','突然変異','融合','分裂'], 500, true),
-      (c) => styles.quantumEntangle(c),
-      (c) => styles.crypticRunes(c),
-      (c) => styles.eternalDarkness(c)
-    ];
-    return patterns[~~(Math.random() * patterns.length)](code);
-  },
-
-  // --- Style 9: Minimal but Deadly ---
-  minimalDeadly: (code) => {
-    const hex = Buffer.from(code).toString('hex').split('').reverse().join('');
-    const enc = Buffer.from(hex).toString('base64');
-    return `eval(Buffer.from(atob("${enc}"),"base64").toString().split("").reverse().join(""))`;
-  },
-
-  // --- Style 10: Custom Override ---
-  custom: (code, customName = 'Loader') => {
-    const names = ['改造','極限','混乱','破壊','地獄','暗黒','虚無','終焉','絶対','神'];
-    const valid = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(customName) ? customName : 'CustomLoader';
-    const b64 = Buffer.from(code).toString('base64');
-    const vName = _s(names);
-    const eName = _s(names);
-    
-    return `(function(){
-${_c(1200, names)}
-const ${eName} = "${_e(code)}";
-const ${vName} = "${b64}";
-function ${valid}(){
-const ${_s(names)} = (${_s(names)}) => ${_d('"' + _e(code) + '"', 'base64')};
-return Buffer.from(${vName},"base64").toString();
-}
-${_p()}
-eval(${valid}());
-})();`;
-  }
-};
-
-// ============================================================
-// COMPOSITE OBFUSCATION (ALL-IN-ONE)
-// ============================================================
-
-const compositeObfuscator = (code, style = 'all') => {
-  const allStyles = Object.values(styles);
-  const selected = style === 'all' 
-    ? allStyles[~~(Math.random() * allStyles.length)]
-    : styles[style] || styles.polymorphic;
-  
-  // Apply multiple layers of obfuscation
-  let result = code;
-  for (let i = 0; i < ~~(Math.random() * 3) + 1; i++) {
-    const styleFn = allStyles[~~(Math.random() * allStyles.length)];
-    result = styleFn(result);
-  }
-  
-  return result;
-};
-
-// ============================================================
-// EXPORTS (Additional styles)
-// ============================================================
-
-const additionalStyles = {
-  ...styles,
-  composite: compositeObfuscator,
-  randomStyle: (code) => {
-    const all = ['chaosWarfare', 'phantomMirage', 'quantumEntangle', 
-                 'mirrorDimension', 'eternalDarkness', 'timeWarp', 
-                 'crypticRunes', 'polymorphic', 'minimalDeadly'];
-    return styles[all[~~(Math.random() * all.length)]](code);
-  }
-};
-
-// Gabungkan dengan exports yang sudah ada
-Object.assign(module.exports, additionalStyles);
-
-// ============================================================
-// ==================== KACUNG PRIME ===========================
-// ============================================================
-
+// kacung prime
 async function processObfuscate(
     ctx,
     obfuscator,
@@ -2198,9 +1483,404 @@ untuk menampilkan menu owner.</blockquote>
 
     }
 )
+// ==================== RANDOM ====================
 
-// ==================== COMMAND ENKRIPSI ====================
 
+// Fixed helper functions
+
+function randomHex(length = 40){
+  return crypto.randomBytes(length).toString("hex")
+}
+
+function randomName(list){
+  const extra=["ツ","々","〆","メ","ん","ฬ","刃","ฬ"]
+  return list[Math.floor(Math.random()*list.length)] +
+    extra[Math.floor(Math.random()*extra.length)] +
+    Math.floor(Math.random()*99999)
+}
+
+function chaosVars(total=500,names=[]){
+  let out=""
+  for(let i=0;i<total;i++){
+    out += `var ${randomName(names)}="${randomHex(80)}";\n`
+  }
+  return out
+}
+
+function makeB64Style(code,names,count=500){
+  const b64 = Buffer.from(code).toString("base64")
+  const funcName = randomName(names)
+  const varName = randomName(names)
+
+  return `(function(){
+${chaosVars(count,names)}
+function ${funcName}(){
+const ${varName}="${b64}";
+return Buffer.from(${varName},"base64").toString();
+}
+eval(${funcName}());
+})();`
+}
+
+function artilleryStyle(code){
+  return makeB64Style(code,["つき","さくら","ほし","ゆき","ねこ","みず","かぜ","やみ"],600)
+}
+
+function hardcoreStyle(code){
+  const names=["悪魔","闇","無限","崩壊","零","死神","幻","滅"]
+  const b64=Buffer.from(code).toString("base64")
+  const funcName=randomName(names)
+  const varName=randomName(names)
+
+  return `(function(){
+${chaosVars(1000,names)}
+setInterval(()=>{debugger},1)
+console.clear()
+function ${funcName}(){
+const ${varName}="${b64}";
+return Buffer.from(${varName},"base64").toString();
+}
+eval(${funcName}());
+})();`
+}
+
+function phantomStyle(code){
+  const hex=Buffer.from(code).toString("hex")
+  return `eval(Buffer.from("${hex}","hex").toString())`
+}
+
+function balancedStyle(code){
+  return makeB64Style(code,["均衡","静","風","月"],300)
+}
+
+function reversedStyle(code){
+  const rev=code.split("").reverse().join("")
+  return `eval("${rev}".split("").reverse().join(""))`
+}
+
+function rosemaryStyle(code){
+  return makeB64Style(code,["薔薇","深夜","死","夢"],800)
+}
+
+function invisStyle(code){
+  const uni=escape(Buffer.from(code).toString("base64"))
+  return `eval(Buffer.from(unescape("${uni}"),"base64").toString())`
+}
+
+function japanStyle(code){
+  return makeB64Style(code,["つき","さくら","ほし","ねこ","そら","ゆき","みず","かぜ","れい","やみ","むげん","はな"],1500)
+}
+
+function arabStyle(code){
+  return makeB64Style(code,["سلام","قمر","نور","ليل","شمس","نار","روح","موت"],900)
+}
+
+function siuStyle(code){
+  return makeB64Style(code,["SIUU","RONALDO","GOAL","CR7"],600)
+}
+
+function nebulaStyle(code){
+  return makeB64Style(code,["星雲","宇宙","銀河","闇","ブラック","無限","ゼロ"],2500)
+}
+
+function varStyle(code){
+  return `(function(){${code}})();`
+}
+
+function customStyle(code,name){
+  const names=["改造","極限","混乱","破壊","地獄","暗黒","虚無"]
+  const b64=Buffer.from(code).toString("base64")
+  const funcName = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name) ? name : "CustomLoader"
+  const varName=randomName(names)
+
+  return `(function(){
+${chaosVars(1200,names)}
+function ${name}(){
+const ${varName}="${b64}";
+return Buffer.from(${varName},"base64").toString();
+}
+eval(${funcName}());
+})();`
+}
+
+function timeLockStyle(code,days){
+  const expired=Date.now()+(Number(days)*86400000)
+  const b64=Buffer.from(code).toString("base64")
+
+  return `(function(){
+if(Date.now()>${expired}){
+console.log("Script Expired");
+process.exit();
+}
+eval(Buffer.from("${b64}","base64").toString());
+})();`
+}
+
+// ============================================================
+// CORE OBFUSCATION ENGINE - ENHANCED VERSION
+// ============================================================
+
+// --- Layer 1: Random Chaos Generator ---
+const _r = (l = 40) => crypto.randomBytes(l).toString('hex');
+const _s = (a) => {
+  const e = ['ツ','々','〆','メ','ん','ฬ','刃','丿','卍','卐','꧁','꧂','༄','༅','༆','༇','༈','༉'];
+  return a[~~(Math.random() * a.length)] + 
+         e[~~(Math.random() * e.length)] + 
+         ~~(Math.random() * 99999) + 
+         String.fromCharCode(~~(Math.random() * 26) + 97);
+};
+
+// --- Layer 2: Enhanced Chaos Variables ---
+const _c = (t = 500, n = []) => {
+  let o = '', x = 0;
+  const p = ['const','let','var'];
+  while (x < t) {
+    const k = p[~~(Math.random() * p.length)];
+    const v = _s(n);
+    const h = _r(~~(Math.random() * 60) + 40);
+    o += `${k} ${v} = "${h}";\n`;
+    if (x % 7 === 0) o += `/* ${_r(15)} */\n`;
+    if (x % 13 === 0) o += `// ${_r(20)}\n`;
+    x++;
+  }
+  return o + `\n// ${_r(30)}\n`;
+};
+
+// --- Layer 3: Multi-layer Encoding ---
+const _e = (c) => {
+  const layers = [
+    (s) => Buffer.from(s).toString('base64'),
+    (s) => Buffer.from(s).toString('hex'),
+    (s) => s.split('').reverse().join(''),
+    (s) => encodeURIComponent(s),
+    (s) => Buffer.from(s).toString('base64').split('').reverse().join('')
+  ];
+  let r = c;
+  const shuffle = layers.sort(() => Math.random() - 0.5);
+  shuffle.forEach((fn, i) => {
+    if (i % 2 === 0) r = fn(r);
+    else r = Buffer.from(r).toString('base64');
+  });
+  return r;
+};
+
+// --- Layer 4: Dynamic Decoder ---
+const _d = (c, t) => {
+  const decoders = [
+    `Buffer.from(${c},'${t}').toString()`,
+    `atob(${c})`,
+    `unescape(${c})`,
+    `decodeURIComponent(${c})`,
+    `String.fromCharCode.apply(null,[...Buffer.from(${c},'${t}')])`
+  ];
+  return decoders[~~(Math.random() * decoders.length)];
+};
+
+// --- Layer 5: Anti-Debug & Protection ---
+const _p = () => {
+  const checks = [];
+  const patterns = [
+    'setInterval(()=>{debugger;},100)',
+    'function _d(){debugger;} setInterval(_d,50)',
+    'const _t=Date.now();while(Date.now()-_t<100){}',
+    'console.clear();console.log("' + _r(30) + '")',
+    'try{eval("debugger")}catch(e){}'
+  ];
+  for (let i = 0; i < ~~(Math.random() * 5) + 2; i++) {
+    checks.push(patterns[~~(Math.random() * patterns.length)]);
+  }
+  return checks.join('\n');
+};
+
+// --- Layer 6: Obfuscated Function Builder ---
+const _build = (code, names, count = 500, isHard = false) => {
+  const b64 = Buffer.from(code).toString('base64');
+  const fName = _s(names);
+  const vName = _s(names);
+  const eName = _s(names);
+  const encoded = _e(code);
+  
+  let result = `(function(){
+${_c(count, names)}
+${_p()}
+const ${eName} = ${_d('"' + encoded + '"', 'base64')};
+const ${vName} = "${b64}";
+function ${fName}(){
+${isHard ? `let ${_s(names)} = 0;\nwhile(${_s(names)} < 100) ${_s(names)}++;\n` : ''}
+${isHard ? `try{${_s(names)}}catch(${_s(names)}){}` : ''}
+return Buffer.from(${vName}, "base64").toString();
+}
+${isHard ? `const ${_s(names)} = () => { eval(${fName}()) };` : ''}
+eval(${fName}());
+})();`;
+  
+  if (isHard) {
+    result = result.replace(/eval/g, 'Function("return " + arguments[0])()');
+    result = result.replace(/Buffer/g, 'require("buffer").Buffer');
+  }
+  
+  return result;
+};
+
+// ============================================================
+// EXPORTED OBFUSCATION FUNCTIONS
+// ============================================================
+
+const styles = {
+  // --- Style 1: Chaos Warfare ---
+  chaosWarfare: (code) => {
+    const names = ['混沌','戦争','破壊','暗黒','無限','虚無','絶対','神'];
+    return _build(code, names, 750, true);
+  },
+
+  // --- Style 2: Phantom Mirage ---
+  phantomMirage: (code) => {
+    const hex = Buffer.from(code).toString('hex');
+    const shuffled = hex.split('').sort(() => Math.random() - 0.5).join('');
+    return `eval(Buffer.from("${shuffled}","hex").toString())`;
+  },
+
+  // --- Style 3: Quantum Entanglement ---
+  quantumEntangle: (code) => {
+    const names = ['量子','粒子','波動','観測','確率','状態','重ね','崩壊'];
+    const b64 = Buffer.from(code).toString('base64');
+    const parts = b64.match(/.{1,10}/g) || [];
+    const shuffled = parts.sort(() => Math.random() - 0.5);
+    const indexMap = parts.map((_, i) => i).sort(() => Math.random() - 0.5);
+    
+    return `(function(){
+${_c(800, names)}
+const ${_s(names)} = [${shuffled.map(p => `"${p}"`).join(',')}];
+const ${_s(names)} = [${indexMap.join(',')}];
+const ${_s(names)} = ${_s(names)}.map(i => ${_s(names)}[i]).join('');
+eval(Buffer.from(${_s(names)},"base64").toString());
+})();`;
+  },
+
+  // --- Style 4: Mirror Dimension ---
+  mirrorDimension: (code) => {
+    const rev = code.split('').reverse().join('');
+    const enc = Buffer.from(rev).toString('base64');
+    return `eval(Buffer.from("${enc}","base64").toString().split("").reverse().join(""))`;
+  },
+
+  // --- Style 5: Eternal Darkness ---
+  eternalDarkness: (code) => {
+    const names = ['永遠','闇','深淵','絶望','死','虚無','終焉','滅'];
+    return _build(code, names, 1200, true);
+  },
+
+  // --- Style 6: Time Warp ---
+  timeWarp: (code, days = 7) => {
+    const expired = Date.now() + (Number(days) * 86400000);
+    const b64 = Buffer.from(code).toString('base64');
+    const check = `const ${_s([])} = ${expired};
+if(Date.now()>${_s([])}){${_s([])}();process.exit();}`;
+    
+    return `(function(){
+${_c(300, ['時間','歪','次元','過去','未来','現在'])}
+${check}
+setTimeout(()=>{eval(Buffer.from("${b64}","base64").toString())}, ${~~(Math.random()*100)+50});
+})();`;
+  },
+
+  // --- Style 7: Cryptic Runes ---
+  crypticRunes: (code) => {
+    const runes = ['ᚠ','ᚢ','ᚦ','ᚨ','ᚱ','ᚲ','ᚷ','ᚹ','ᚺ','ᚾ','ᛁ','ᛃ','ᛈ','ᛇ','ᛉ','ᛊ','ᛏ','ᛒ','ᛖ','ᛗ','ᛚ','ᛝ','ᛟ','ᛞ'];
+    const names = runes.map(r => r + _r(2));
+    const b64 = Buffer.from(code).toString('base64');
+    const split = b64.split('').map(c => {
+      const r = runes[~~(Math.random() * runes.length)];
+      return r + c + runes[~~(Math.random() * runes.length)];
+    }).join('');
+    
+    return `(function(){
+${_c(600, names)}
+const ${_s(names)} = "${split}";
+const ${_s(names)} = ${_s(names)}.replace(/[${runes.join('')}]/g,'');
+eval(Buffer.from(${_s(names)},"base64").toString());
+})();`;
+  },
+
+  // --- Style 8: Polymorphic Engine ---
+  polymorphic: (code) => {
+    const patterns = [
+      (c) => _build(c, ['変身','進化','適応','突然変異','融合','分裂'], 500, true),
+      (c) => styles.quantumEntangle(c),
+      (c) => styles.crypticRunes(c),
+      (c) => styles.eternalDarkness(c)
+    ];
+    return patterns[~~(Math.random() * patterns.length)](code);
+  },
+
+  // --- Style 9: Minimal but Deadly ---
+  minimalDeadly: (code) => {
+    const hex = Buffer.from(code).toString('hex').split('').reverse().join('');
+    const enc = Buffer.from(hex).toString('base64');
+    return `eval(Buffer.from(atob("${enc}"),"base64").toString().split("").reverse().join(""))`;
+  },
+
+  // --- Style 10: Custom Override ---
+  custom: (code, customName = 'Loader') => {
+    const names = ['改造','極限','混乱','破壊','地獄','暗黒','虚無','終焉','絶対','神'];
+    const valid = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(customName) ? customName : 'CustomLoader';
+    const b64 = Buffer.from(code).toString('base64');
+    const vName = _s(names);
+    const eName = _s(names);
+    
+    return `(function(){
+${_c(1200, names)}
+const ${eName} = "${_e(code)}";
+const ${vName} = "${b64}";
+function ${valid}(){
+const ${_s(names)} = (${_s(names)}) => ${_d('"' + _e(code) + '"', 'base64')};
+return Buffer.from(${vName},"base64").toString();
+}
+${_p()}
+eval(${valid}());
+})();`
+  }
+};
+
+// ============================================================
+// COMPOSITE OBFUSCATION (ALL-IN-ONE)
+// ============================================================
+
+const compositeObfuscator = (code, style = 'all') => {
+  const allStyles = Object.values(styles);
+  const selected = style === 'all' 
+    ? allStyles[~~(Math.random() * allStyles.length)]
+    : styles[style] || styles.polymorphic;
+  
+  // Apply multiple layers of obfuscation
+  let result = code;
+  for (let i = 0; i < ~~(Math.random() * 3) + 1; i++) {
+    const styleFn = allStyles[~~(Math.random() * allStyles.length)];
+    result = styleFn(result);
+  }
+  
+  return result;
+};
+
+// ============================================================
+// EXPORTS (Additional styles)
+// ============================================================
+
+const additionalStyles = {
+  ...styles,
+  composite: compositeObfuscator,
+  randomStyle: (code) => {
+    const all = ['chaosWarfare', 'phantomMirage', 'quantumEntangle', 
+                 'mirrorDimension', 'eternalDarkness', 'timeWarp', 
+                 'crypticRunes', 'polymorphic', 'minimalDeadly'];
+    return styles[all[~~(Math.random() * all.length)]](code);
+  }
+};
+
+// Gabungkan dengan exports yang sudah ada
+Object.assign(module.exports, additionalStyles);
+
+// COMMAND
 // /artillery
 bot.command(
 'artillery',
@@ -3083,28 +2763,28 @@ ctx.reply(String(e))
 // =============================
 bot.command("backup", async (ctx) => {
 
-        const userId =
-            Number(ctx.from.id)
+    const userId =
+        Number(ctx.from.id)
 
-        // owner only
-        if (userId !== config.OWNER_ID) {
+    // owner only
+    if (userId !== config.OWNER_ID) {
 
-            return ctx.reply(
-                "❌ Owner only."
-            )
-        }
-
-        await ctx.reply(
-            "📦 Membuat backup..."
+        return ctx.reply(
+            "❌ Owner only."
         )
+    }
 
-        await sendBackup(
-            "Manual Backup"
-        )
+    await ctx.reply(
+        "📦 Membuat backup..."
+    )
 
-        await ctx.reply(
-            "✅ Backup berhasil dikirim ke owner."
-        )
+    await sendBackup(
+        "Manual Backup"
+    )
+
+    await ctx.reply(
+        "✅ Backup berhasil dikirim ke owner."
+    )
 })
 
 // =============================
