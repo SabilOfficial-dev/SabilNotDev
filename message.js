@@ -240,7 +240,7 @@ function analyseCode(code) {
 
     if (!errorLine) {
       m = (e.stack || "").match(/<anonymous>:(\d+):(\d+)/)
-      if (m) { errorLine = parseInt(m[1]) - 2; errorCol = parseInt(m[2]) }
+      if (m) { errorLine = parseInt(m[1]); errorCol = parseInt(m[2]) }
     }
 
     if      (/unexpected token 'else'/i.test(msg))       fixSuggest = "Ada blok `if` tidak lengkap atau kurung kurawal `{}` hilang sebelum `else`."
@@ -579,6 +579,10 @@ bot.telegram.setMyCommands([
     {
         command: 'chatowner',
         description: 'Memberi pesan ke owner'
+    },
+    {
+        command: 'enc',
+        description: 'Encrypt file dengan pilihan style'
     }
 ])
 .then(() => {
@@ -1377,26 +1381,26 @@ bot.action('open_menu', async (ctx) => {
 
 bot.action('main_menu', async (ctx) => {
     const messageId = ctx.callbackQuery.message.message_id;
-    await showMenu1(ctx, messageId);
     await ctx.answerCbQuery();
+    await showMenu1(ctx, messageId);
 });
 
 bot.action('enc_menu_v1', async (ctx) => {
     const messageId = ctx.callbackQuery.message.message_id;
-    await EncV1(ctx, messageId);
     await ctx.answerCbQuery();
+    await EncV1(ctx, messageId);
 });
 
 bot.action('enc_menu_v2', async (ctx) => {
     const messageId = ctx.callbackQuery.message.message_id;
-    await EncV2(ctx, messageId);
     await ctx.answerCbQuery();
+    await EncV2(ctx, messageId);
 });
 
 bot.action('tools_menu', async (ctx) => {
-    const messageId = ctx.callbackQuery.message.message_id
-    await showMenu2(ctx, messageId);
+    const messageId = ctx.callbackQuery.message.message_id;
     await ctx.answerCbQuery();
+    await EncV2(ctx, messageId);
 });
 
 bot.action("owner_menu", async (ctx) => {
@@ -1434,6 +1438,7 @@ Forward To User</b></blockquote>
 Setting Link Auto Update</b></blockquote>
 <blockquote><b>/cekupdate
 Cek Update From Link Raw.Github</b></blockquote>
+<blockquote><b>/maintenane On/Off + Reason</b></blockquote>
 `,
             {
                 parse_mode: "HTML",
@@ -1589,7 +1594,7 @@ function customStyle(code,name){
 
   return `(function(){
 ${chaosVars(1200,names)}
-function ${name}(){
+function ${funcName}(){
 const ${varName}="${b64}";
 return Buffer.from(${varName},"base64").toString();
 }
@@ -2309,19 +2314,19 @@ npm install acorn\`\`\``,
       // Tidak ada error
       const successMsg = `
 ☑︎ TIDAK ADA ERROR
-───────────────────────────
+─────────────────────────
 📌 Language:
 \`\`\`
 ${langDisplay}\`\`\`
 
 ✨ Hasil Analisis:
-━━━━━━━━━━━━━━━━━━━━━━━━━━
+─────────────────────────
 \`\`\`js
 ✅︎ Tidak ditemukan error pada kode
 ✅︎ Sintaks valid
 ✅︎ Struktur kode aman\`\`\`
 
-───────────────────────────
+─────────────────────────
 ☑︎ Kode AMAN! 🚀`;
 
       return ctx.reply(successMsg, { parse_mode: "Markdown" });
@@ -2342,22 +2347,29 @@ ${langDisplay}\`\`\`
 
       const errorMsg2 = `
 ERROR DITEMUKAN
-───────────────────────────
+─────────────────────────
 📋 Error:
 \`\`\`js
 ${errorMsgClean}\`\`\`
+
+─────────────────────────
 
 📍 Baris Error:
 \`\`\`js
 ${errorLine ? `Baris ke-${errorLine}${errorCol ? `, Kolom ${errorCol}` : ""}` : "Tidak terdeteksi"}\`\`\`
 
+─────────────────────────
+
 💡 Saran Perbaikan:
 \`\`\`js
 ${fixSuggest || "Periksa sintaks dan logika kode"}\`\`\`
 
+─────────────────────────
+
 📌 Cuplikan Kode:
 \`\`\`js
 ${annotatedClean}\`\`\`
+─────────────────────────
 `;
 
       // Jika pesan terlalu panjang, kirim sebagai file
@@ -3247,43 +3259,43 @@ Lalu ketik : <code>/cekerror</code></blockquote>
         const result =
 `
 HASIL ANALISIS ERROR
-────────────
+────────────────────────
 
 File :
 \`\`\`js
 ${fileName}\`\`\`
 
-────────────
+────────────────────────
 
 Ukuran : 
 \`\`\`js
 ${Buffer.byteLength(code)}\`\`\`
 
-────────────
+────────────────────────
 
 Baris Error :
 \`\`\`js
 ${errorLine || "-"},\`\`\`
 
-────────────
+────────────────────────
 
 Jenis Error :
 \`\`\`js
 ${errorMsg}\`\`\`
 
-────────────
+────────────────────────
 
 Saran Perbaikan :
 \`\`\`js
 ${fixSuggest}\`\`\`
 
-────────────
+────────────────────────
 
 Cuplikan Error :
 \`\`\`js
 ${annotated}\`\`\`
 
-─────────────
+────────────────────────
 *Analisis File/Code Selesai*
 `
 
@@ -3607,6 +3619,677 @@ bot.on("text", async (ctx, next) => {
 
     }
 )
+// ==================== SESSION ENC ====================
+const encSession = new Map(); // userId -> { mode: 'custom'|'time', step: 'waiting_name'|'waiting_days' }
+
+// ==================== KEYBOARD ENC UTAMA ====================
+function getEncMainKeyboard() {
+    const style = getDiscoStyle();
+    return {
+        inline_keyboard: [
+            [
+                { text: "⚡ LANJUT ENC", callback_data: "enc_continue", style: style }
+            ],
+            [
+                { text: "⪨ KEMBALI", callback_data: "main_menu", style: style }
+            ]
+        ]
+    };
+}
+
+// ==================== KEYBOARD ENC V1 ====================
+function getEncV1StyleKeyboard() {
+    const style = getDiscoStyle();
+    return {
+        inline_keyboard: [
+            [
+                { text: "⚡ LANJUT ENC V2", callback_data: "enc_v2", style: style }
+            ],
+            [
+                { text: "artillery", callback_data: "enc_artillery", style: style },
+                { text: "hardcore", callback_data: "enc_hardcore", style: style }
+            ],
+            [
+                { text: "phantom", callback_data: "enc_phantom", style: style },
+                { text: "balanced", callback_data: "enc_balanced", style: style }
+            ],
+            [
+                { text: "reversed", callback_data: "enc_reversed", style: style },
+                { text: "rosemary", callback_data: "enc_rosemary", style: style }
+            ],
+            [
+                { text: "⪨ KEMBALI", callback_data: "enc_back_main", style: style }
+            ]
+        ]
+    };
+}
+
+// ==================== KEYBOARD ENC V2 ====================
+function getEncV2StyleKeyboard() {
+    const style = getDiscoStyle();
+    return {
+        inline_keyboard: [
+            [
+                { text: "invisenc", callback_data: "enc_invisenc", style: style },
+                { text: "japanenc", callback_data: "enc_japanenc", style: style }
+            ],
+            [
+                { text: "encarab", callback_data: "enc_encarab", style: style },
+                { text: "siuenc", callback_data: "enc_siuenc", style: style }
+            ],
+            [
+                { text: "japan", callback_data: "enc_japan", style: style },
+                { text: "nebula", callback_data: "enc_nebula", style: style }
+            ],
+            [
+                { text: "var", callback_data: "enc_var", style: style },
+                { text: "enc time", callback_data: "enc_time", style: style }
+            ],
+            [
+                { text: "enc custom", callback_data: "enc_custom", style: style },
+                { text: "⪨ KEMBALI", callback_data: "enc_back_v1", style: style }
+            ]
+        ]
+    };
+}
+
+// ==================== KONFIRMASI ENC ====================
+function getConfirmKeyboard(styleName) {
+    const style = getDiscoStyle();
+    return {
+        inline_keyboard: [
+            [
+                { text: `✅ ENC ${styleName}`, callback_data: `confirm_enc_${styleName}`, style: style }
+            ],
+            [
+                { text: "⪨ BATAL", callback_data: "enc_cancel", style: style }
+            ]
+        ]
+    };
+}
+
+// ==================== COMMAND /ENC ====================
+bot.command('enc', async (ctx) => {
+    const userId = ctx.from.id;
+    
+    // Cek akses
+    if (!isUserHasAccess(userId) && userId !== config.OWNER_ID) {
+        return ctx.reply("❌ Akses ditolak.");
+    }
+    
+    // Cek reply file
+    if (!ctx.message.reply_to_message) {
+        return ctx.reply(
+            `<blockquote><b>❌ Cara Penggunaan</b></blockquote>
+<blockquote>Reply file <b>.js</b> atau <b>.html</b>
+Lalu kirim: <code>/enc</code></blockquote>`,
+            { parse_mode: "HTML" }
+        );
+    }
+    
+    const replied = ctx.message.reply_to_message;
+    let fileId = null;
+    let fileName = "script";
+    let fileType = "js";
+    
+    if (replied.document) {
+        const name = replied.document.file_name || "";
+        const ext = path.extname(name).toLowerCase();
+        
+        if (![".js", ".html", ".txt"].includes(ext)) {
+            return ctx.reply("❌ Hanya file .js atau .html yang didukung.");
+        }
+        
+        fileId = replied.document.file_id;
+        fileName = name.replace(/\.[^/.]+$/, "");
+        fileType = ext.replace(".", "");
+    } else if (replied.text) {
+        // Jika reply text, simpan ke session
+        encSession.set(userId, {
+            mode: 'text',
+            code: replied.text,
+            fileName: 'code'
+        });
+    } else {
+        return ctx.reply("❌ Reply file .js atau .html");
+    }
+    
+    // Simpan session
+    encSession.set(userId, {
+        mode: 'file',
+        fileId: fileId,
+        fileName: fileName,
+        fileType: fileType
+    });
+    
+    // Kirim pesan dengan polling
+    const caption = `\`\`\`js
+📦 TARGET LOCKED
+📄 File: ${fileName}.${fileType}
+👤 User: ${ctx.from.first_name}
+
+Pilih aksi yang ingin dilakukan\`\`\``;
+    
+    const thumb = await getThumbnailBuffer();
+    let sentMsg;
+    
+    if (thumb) {
+        sentMsg = await ctx.replyWithPhoto(
+            { source: thumb },
+            {
+                caption,
+                parse_mode: 'Markdown',
+                reply_markup: getEncMainKeyboard()
+            }
+        );
+    } else {
+        sentMsg = await ctx.reply(
+            caption,
+            {
+                parse_mode: 'Markdown',
+                reply_markup: getEncMainKeyboard()
+            }
+        );
+    }
+    
+    encSession.set(userId, {
+        ...encSession.get(userId),
+        messageId: sentMsg.message_id
+    });
+    
+    startDisco(ctx, sentMsg.message_id, getEncMainKeyboard);
+});
+
+// ==================== CALLBACK ENC ====================
+
+// KEMBALI KE MENU UTAMA
+bot.action('enc_back_main', async (ctx) => {
+    const userId = ctx.from.id;
+    await ctx.answerCbQuery();
+    const messageId = ctx.callbackQuery.message.message_id;
+    await showMenu1(ctx, messageId);
+});
+
+// KEMBALI KE V1
+bot.action('enc_back_v1', async (ctx) => {
+    const userId = ctx.from.id;
+    await ctx.answerCbQuery();
+    const messageId = ctx.callbackQuery.message.message_id;
+    
+    const caption = `\`\`\`js
+━━━ ⚙️ 𝖤𝗇𝖼𝗋𝗒𝗉𝗍 𝖬𝖾𝗇𝗎 𝖵𝟣 ━━━
+Pilih style encrypt yang diinginkan\`\`\``;
+    
+    const thumb = await getThumbnailBuffer();
+    if (thumb) {
+        await ctx.telegram.editMessageMedia(ctx.chat.id, messageId, undefined, {
+            type: 'photo',
+            media: { source: thumb },
+            caption,
+            parse_mode: 'Markdown'
+        }, { reply_markup: getEncV1StyleKeyboard() });
+    } else {
+        await ctx.telegram.editMessageText(ctx.chat.id, messageId, undefined, caption, {
+            parse_mode: 'Markdown',
+            reply_markup: getEncV1StyleKeyboard()
+        });
+    }
+    startDisco(ctx, messageId, getEncV1StyleKeyboard);
+});
+
+// LANJUT ENC
+bot.action('enc_continue', async (ctx) => {
+    const userId = ctx.from.id;
+    await ctx.answerCbQuery();
+    const messageId = ctx.callbackQuery.message.message_id;
+    
+    const caption = `\`\`\`js
+━━━ ⚙️ 𝖤𝗇𝖼𝗋𝗒𝗉𝗍 𝖬𝖾𝗇𝗎 𝖵𝟣 ━━━
+Pilih style encrypt yang diinginkan\`\`\``;
+    
+    const thumb = await getThumbnailBuffer();
+    if (thumb) {
+        await ctx.telegram.editMessageMedia(ctx.chat.id, messageId, undefined, {
+            type: 'photo',
+            media: { source: thumb },
+            caption,
+            parse_mode: 'Markdown'
+        }, { reply_markup: getEncV1StyleKeyboard() });
+    } else {
+        await ctx.telegram.editMessageText(ctx.chat.id, messageId, undefined, caption, {
+            parse_mode: 'Markdown',
+            reply_markup: getEncV1StyleKeyboard()
+        });
+    }
+    startDisco(ctx, messageId, getEncV1StyleKeyboard);
+});
+
+// LANJUT V2
+bot.action('enc_v2', async (ctx) => {
+    const userId = ctx.from.id;
+    await ctx.answerCbQuery();
+    const messageId = ctx.callbackQuery.message.message_id;
+    
+    const caption = `\`\`\`js
+━━━ ⚙️ 𝖤𝗇𝖼𝗋𝗒𝗉𝗍 𝖬𝖾𝗇𝗎 𝖵𝟤 ━━━
+Pilih style encrypt yang diinginkan\`\`\``;
+    
+    const thumb = await getThumbnailBuffer();
+    if (thumb) {
+        await ctx.telegram.editMessageMedia(ctx.chat.id, messageId, undefined, {
+            type: 'photo',
+            media: { source: thumb },
+            caption,
+            parse_mode: 'Markdown'
+        }, { reply_markup: getEncV2StyleKeyboard() });
+    } else {
+        await ctx.telegram.editMessageText(ctx.chat.id, messageId, undefined, caption, {
+            parse_mode: 'Markdown',
+            reply_markup: getEncV2StyleKeyboard()
+        });
+    }
+    startDisco(ctx, messageId, getEncV2StyleKeyboard);
+});
+
+// CANCEL
+bot.action('enc_cancel', async (ctx) => {
+    const userId = ctx.from.id;
+    encSession.delete(userId);
+    await ctx.answerCbQuery("❌ Dibatalkan");
+    await ctx.deleteMessage(ctx.callbackQuery.message.message_id).catch(() => {});
+    await ctx.reply("❌ Proses encrypt dibatalkan.");
+});
+
+// ==================== HANDLER ENC STYLE ====================
+const encStyles = {
+    'artillery': { name: 'Artillery', func: artilleryStyle },
+    'hardcore': { name: 'Hardcore', func: hardcoreStyle },
+    'phantom': { name: 'Phantom', func: phantomStyle },
+    'balanced': { name: 'Balanced', func: balancedStyle },
+    'reversed': { name: 'Reversed', func: reversedStyle },
+    'rosemary': { name: 'Rosemary', func: rosemaryStyle },
+    'invisenc': { name: 'InvisEnc', func: invisStyle },
+    'japanenc': { name: 'JapanEnc', func: japanStyle },
+    'encarab': { name: 'EncArab', func: arabStyle },
+    'siuenc': { name: 'SiuEnc', func: siuStyle },
+    'japan': { name: 'Japan', func: japanStyle },
+    'nebula': { name: 'Nebula', func: nebulaStyle },
+    'var': { name: 'Var', func: varStyle },
+};
+
+// Handler untuk semua style
+Object.keys(encStyles).forEach(key => {
+    bot.action(`enc_${key}`, async (ctx) => {
+        const userId = ctx.from.id;
+        const style = encStyles[key];
+        
+        // Konfirmasi
+        await ctx.answerCbQuery();
+        const messageId = ctx.callbackQuery.message.message_id;
+        
+        const confirmMsg = `\`\`\`js
+⚠️ KONFIRMASI ENCRYPT
+
+📌 Style: ${style.name}
+📄 File: ${encSession.get(userId)?.fileName || 'unknown'}
+
+Klik "✅ ENC ${style.name}" untuk melanjutkan\`\`\``;
+        
+        const thumb = await getThumbnailBuffer();
+        if (thumb) {
+            await ctx.telegram.editMessageMedia(ctx.chat.id, messageId, undefined, {
+                type: 'photo',
+                media: { source: thumb },
+                caption: confirmMsg,
+                parse_mode: 'Markdown'
+            }, { reply_markup: getConfirmKeyboard(style.name) });
+        } else {
+            await ctx.telegram.editMessageText(ctx.chat.id, messageId, undefined, confirmMsg, {
+                parse_mode: 'Markdown',
+                reply_markup: getConfirmKeyboard(style.name)
+            });
+        }
+        
+        // Simpan style yang dipilih
+        encSession.set(userId, {
+            ...encSession.get(userId),
+            selectedStyle: key,
+            styleName: style.name,
+            styleFunc: style.func
+        });
+    });
+});
+
+// ==================== KONFIRMASI ENC ====================
+bot.action(/^confirm_enc_(.+)/, async (ctx) => {
+    const userId = ctx.from.id;
+    const styleKey = ctx.match[1];
+    const session = encSession.get(userId);
+    
+    if (!session) {
+        await ctx.answerCbQuery("❌ Session expired!");
+        await ctx.deleteMessage(ctx.callbackQuery.message.message_id).catch(() => {});
+        return;
+    }
+    
+    await ctx.answerCbQuery(`✅ Memulai encrypt ${session.styleName}...`);
+    
+    // Hapus pesan konfirmasi
+    await ctx.deleteMessage(ctx.callbackQuery.message.message_id).catch(() => {});
+    
+    // Ambil kode
+    let code = "";
+    let fileName = session.fileName || "script";
+    
+    if (session.mode === 'file' && session.fileId) {
+        try {
+            const file = await ctx.telegram.getFile(session.fileId);
+            const link = `https://api.telegram.org/file/bot${config.BOT_TOKEN}/${file.file_path}`;
+            const res = await axios.get(link);
+            code = res.data;
+        } catch (err) {
+            await ctx.reply(`❌ Gagal download file: ${err.message}`);
+            encSession.delete(userId);
+            return;
+        }
+    } else if (session.mode === 'text' && session.code) {
+        code = session.code;
+        fileName = session.fileName || 'code';
+    } else {
+        await ctx.reply("❌ Data tidak ditemukan. Ulangi proses.");
+        encSession.delete(userId);
+        return;
+    }
+    
+    if (!code) {
+        await ctx.reply("❌ Kode kosong.");
+        encSession.delete(userId);
+        return;
+    }
+    
+    // Proses encrypt
+    try {
+        const waitMsg = await ctx.reply("🔍 Memulai proses encrypt...");
+        
+        // Ambil fungsi style
+        const styleFunc = session.styleFunc;
+        if (typeof styleFunc !== 'function') {
+            await ctx.reply("❌ Style tidak valid.");
+            encSession.delete(userId);
+            return;
+        }
+        
+        await sendEncryptProgress(ctx, waitMsg, session.styleName);
+        
+        const obfuscated = styleFunc(code);
+        const buffer = Buffer.from(obfuscated, "utf8");
+        
+        const outputFilename = `${String(session.styleName).toLowerCase()}-encrypt-${fileName}.js`;
+        
+        await ctx.replyWithDocument(
+            { source: buffer, filename: outputFilename },
+            { caption: `✅ Mode: ${session.styleName}\n📄 File: ${fileName}\n🔒 Berhasil di encrypt` }
+        );
+        
+        await ctx.deleteMessage(waitMsg.message_id).catch(() => {});
+        
+    } catch (err) {
+        console.error('Encrypt error:', err);
+        await ctx.reply(`❌ Gagal encrypt: ${err.message}`);
+    }
+    
+    encSession.delete(userId);
+});
+
+// ==================== HANDLER ENC TIME ====================
+bot.action('enc_time', async (ctx) => {
+    const userId = ctx.from.id;
+    await ctx.answerCbQuery();
+    
+    // Hapus pesan sebelumnya
+    await ctx.deleteMessage(ctx.callbackQuery.message.message_id).catch(() => {});
+    
+    // Simpan mode time
+    encSession.set(userId, {
+        ...encSession.get(userId),
+        mode: 'time',
+        step: 'waiting_days'
+    });
+    
+    await ctx.reply(
+        `<blockquote><b>⏰ ENCRYPT WITH TIME LOCK</b></blockquote>
+<blockquote>Kirimkan <b>jumlah hari</b> masa berlaku file ini.</blockquote>
+<blockquote>Contoh: <code>30</code> = 30 hari</blockquote>
+<blockquote>Ketik <code>/batal</code> untuk membatalkan.</blockquote>`,
+        { parse_mode: "HTML" }
+    );
+});
+
+// ==================== HANDLER ENC CUSTOM ====================
+bot.action('enc_custom', async (ctx) => {
+    const userId = ctx.from.id;
+    await ctx.answerCbQuery();
+    
+    // Hapus pesan sebelumnya
+    await ctx.deleteMessage(ctx.callbackQuery.message.message_id).catch(() => {});
+    
+    // Simpan mode custom
+    encSession.set(userId, {
+        ...encSession.get(userId),
+        mode: 'custom',
+        step: 'waiting_name'
+    });
+    
+    await ctx.reply(
+        `<blockquote><b>🎨 ENCRYPT WITH CUSTOM NAME</b></blockquote>
+<blockquote>Kirimkan <b>nama</b> untuk fungsi encrypt.</blockquote>
+<blockquote>Contoh: <code>SabilOfficial</code></blockquote>
+<blockquote>⚠️ Tanpa spasi!</blockquote>
+<blockquote>Ketik <code>/batal</code> untuk membatalkan.</blockquote>`,
+        { parse_mode: "HTML" }
+    );
+});
+
+// ==================== HANDLER TEXT UNTUK ENC TIME & CUSTOM ====================
+bot.on('text', async (ctx, next) => {
+    const userId = ctx.from.id;
+    const session = encSession.get(userId);
+    
+    // Skip jika bukan mode time/custom
+    if (!session || (session.mode !== 'time' && session.mode !== 'custom')) {
+        return next();
+    }
+    
+    // Skip command
+    if (ctx.message.text.startsWith('/')) {
+        return next();
+    }
+    
+    const text = ctx.message.text.trim();
+    
+    // Handle batal
+    if (text.toLowerCase() === '/batal') {
+        encSession.delete(userId);
+        await ctx.reply("❌ Proses dibatalkan.");
+        return;
+    }
+    
+    // Handle time
+    if (session.mode === 'time' && session.step === 'waiting_days') {
+        const days = Number(text);
+        if (isNaN(days) || days < 1) {
+            await ctx.reply(
+                `<blockquote>❌ Masukkan <b>angka</b> yang valid (minimal 1 hari)</blockquote>
+<blockquote>Contoh: <code>30</code></blockquote>`,
+                { parse_mode: "HTML" }
+            );
+            return;
+        }
+        
+        // Proses encrypt dengan timeLock
+        await processEncWithTime(ctx, days);
+        encSession.delete(userId);
+        return;
+    }
+    
+    // Handle custom
+    if (session.mode === 'custom' && session.step === 'waiting_name') {
+        if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(text)) {
+            await ctx.reply(
+                `<blockquote>❌ Nama tidak valid!</blockquote>
+<blockquote>Hanya huruf, angka, underscore (_), dan dollar ($)</blockquote>
+<blockquote>Tidak boleh ada spasi!</blockquote>
+<blockquote>Contoh: <code>SabilOfficial</code> atau <code>_MyLoader</code></blockquote>`,
+                { parse_mode: "HTML" }
+            );
+            return;
+        }
+        
+        // Proses encrypt dengan custom
+        await processEncWithCustom(ctx, text);
+        encSession.delete(userId);
+        return;
+    }
+    
+    return next();
+});
+
+// ==================== PROSES ENC CUSTOM ====================
+async function processEncWithCustom(ctx, customName) {
+    const userId = ctx.from.id;
+    const session = encSession.get(userId);
+    
+    if (!session) {
+        await ctx.reply("❌ Session expired. Ulangi proses.");
+        return;
+    }
+    
+    // Ambil kode
+    let code = "";
+    let fileName = session.fileName || "script";
+    
+    if (session.mode === 'file' && session.fileId) {
+        try {
+            const file = await ctx.telegram.getFile(session.fileId);
+            const link = `https://api.telegram.org/file/bot${config.BOT_TOKEN}/${file.file_path}`;
+            const res = await axios.get(link);
+            code = res.data;
+        } catch (err) {
+            await ctx.reply(`❌ Gagal download file: ${err.message}`);
+            return;
+        }
+    } else if (session.mode === 'text' && session.code) {
+        code = session.code;
+        fileName = session.fileName || 'code';
+    } else {
+        await ctx.reply("❌ Data tidak ditemukan.");
+        return;
+    }
+    
+    if (!code) {
+        await ctx.reply("❌ Kode kosong.");
+        return;
+    }
+    
+    try {
+        const waitMsg = await ctx.reply("🔍 Memulai proses encrypt custom...");
+        
+        const obfuscated = customStyle(code, customName);
+        const buffer = Buffer.from(obfuscated, "utf8");
+        
+        const outputFilename = `custom-${customName}-encrypt-${fileName}.js`;
+        
+        await ctx.replyWithDocument(
+            { source: buffer, filename: outputFilename },
+            { caption: `✅ Mode: Custom\n📌 Nama: ${customName}\n📄 File: ${fileName}\n🔒 Berhasil di encrypt` }
+        );
+        
+        await ctx.deleteMessage(waitMsg.message_id).catch(() => {});
+        
+    } catch (err) {
+        console.error('Custom encrypt error:', err);
+        await ctx.reply(`❌ Gagal encrypt: ${err.message}`);
+    }
+}
+
+// ==================== PROSES ENC TIME ====================
+async function processEncWithTime(ctx, days) {
+    const userId = ctx.from.id;
+    const session = encSession.get(userId);
+    
+    if (!session) {
+        await ctx.reply("❌ Session expired. Ulangi proses.");
+        return;
+    }
+    
+    // Ambil kode
+    let code = "";
+    let fileName = session.fileName || "script";
+    
+    if (session.mode === 'file' && session.fileId) {
+        try {
+            const file = await ctx.telegram.getFile(session.fileId);
+            const link = `https://api.telegram.org/file/bot${config.BOT_TOKEN}/${file.file_path}`;
+            const res = await axios.get(link);
+            code = res.data;
+        } catch (err) {
+            await ctx.reply(`❌ Gagal download file: ${err.message}`);
+            return;
+        }
+    } else if (session.mode === 'text' && session.code) {
+        code = session.code;
+        fileName = session.fileName || 'code';
+    } else {
+        await ctx.reply("❌ Data tidak ditemukan.");
+        return;
+    }
+    
+    if (!code) {
+        await ctx.reply("❌ Kode kosong.");
+        return;
+    }
+    
+    try {
+        const waitMsg = await ctx.reply(`🔍 Memulai proses encrypt time lock (${days} hari)...`);
+        
+        const obfuscated = timeLockStyle(code, days);
+        const buffer = Buffer.from(obfuscated, "utf8");
+        
+        const outputFilename = `timelock-${days}d-encrypt-${fileName}.js`;
+        
+        const expiredDate = new Date(Date.now() + (days * 86400000));
+        const expiredFormatted = expiredDate.toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        await ctx.replyWithDocument(
+            { source: buffer, filename: outputFilename },
+            { caption: `✅ Mode: Time Lock\n📅 Expired: ${days} hari (${expiredFormatted})\n📄 File: ${fileName}\n🔒 Berhasil di encrypt` }
+        );
+        
+        await ctx.deleteMessage(waitMsg.message_id).catch(() => {});
+        
+    } catch (err) {
+        console.error('Time lock encrypt error:', err);
+        await ctx.reply(`❌ Gagal encrypt: ${err.message}`);
+    }
+}
+
+// ==================== COMMAND BATAL ====================
+bot.command('batal', async (ctx) => {
+    const userId = ctx.from.id;
+    if (encSession.has(userId)) {
+        encSession.delete(userId);
+        await ctx.reply("❌ Proses dibatalkan.");
+    } else {
+        await ctx.reply("ℹ️ Tidak ada proses yang berjalan.");
+    }
+});
+
 // kontol up
 // ==================== JALANKAN ====================
 // =============================
@@ -3790,12 +4473,12 @@ async function sendBackup(
             },
             {
                 caption:
-`
-<blockquote><b>📦 SYSTEM BACKUP</b></blockquote>
-<blockquote><b>📝 Reason : ${reason}</b></blockquote>
-<blockquote><b>🕒 Time : ${time}</b></blockquote>
+`\`\`\`js
+📦 SYSTEM BACKUP
+📝 Reason : ${reason}
+🕒 Time : ${time}\`\`\`
 `,
-                parse_mode: "HTML"
+                parse_mode: "Markdown"
             }
         )
 
