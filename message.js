@@ -982,12 +982,7 @@ function makeB64Style(code,names,count=500){
   const funcName = randomName(names)
   const varName = randomName(names)
 
-  return `(function(){
-${chaosVars(count,names)}
-function ${funcName}(){
-const ${varName}="${b64}";
-return Buffer.from(${varName},"base64").toString();
-}
+  return `(function(){${chaosVars(count,names)}function ${funcName}(){const ${varName}="${b64}";return Buffer.from(${varName},"base64").toString();}
 eval(${funcName}());
 })();`
 }
@@ -1002,13 +997,10 @@ function hardcoreStyle(code){
   const funcName=randomName(names)
   const varName=randomName(names)
 
-  return `(function(){
-${chaosVars(1000,names)}
+  return `(function(){${chaosVars(1000,names)}
 setInterval(()=>{debugger},1)
 console.clear()
-function ${funcName}(){
-const ${varName}="${b64}";
-return Buffer.from(${varName},"base64").toString();
+function ${funcName}(){const ${varName}="${b64}";return Buffer.from(${varName},"base64").toString();
 }
 eval(${funcName}());
 })();`
@@ -1063,12 +1055,8 @@ function customStyle(code,name){
   const funcName = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name) ? name : "CustomLoader"
   const varName=randomName(names)
 
-  return `(function(){
-${chaosVars(1200,names)}
-function ${name}(){
-const ${varName}="${b64}";
-return Buffer.from(${varName},"base64").toString();
-}
+  return `(function(){${chaosVars(1200,name)}
+function ${name}(){const ${varName}="${b64}";return Buffer.from(${varName},"base64").toString();}
 eval(${funcName}());
 })();`
 }
@@ -1077,11 +1065,7 @@ function timeLockStyle(code,days){
   const expired=Date.now()+(Number(days)*86400000)
   const b64=Buffer.from(code).toString("base64")
 
-  return `(function(){
-if(Date.now()>${expired}){
-console.log("Script Expired");
-process.exit();
-}
+  return `(function(){if(Date.now()>${expired}){console.log("Script Expired");process.exit();}
 eval(Buffer.from("${b64}","base64").toString());
 })();`
 }
