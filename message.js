@@ -1,4 +1,3 @@
-
 const { Telegraf } = require('telegraf');
 const fs = require('fs-extra');
 const archiver  = require("archiver")
@@ -241,7 +240,7 @@ function analyseCode(code) {
 
     if (!errorLine) {
       m = (e.stack || "").match(/<anonymous>:(\d+):(\d+)/)
-      if (m) { errorLine = parseInt(m[1]); errorCol = parseInt(m[2]) }
+      if (m) { errorLine = parseInt(m[1]) - 2; errorCol = parseInt(m[2]) }
     }
 
     if      (/unexpected token 'else'/i.test(msg))       fixSuggest = "Ada blok `if` tidak lengkap atau kurung kurawal `{}` hilang sebelum `else`."
@@ -580,10 +579,6 @@ bot.telegram.setMyCommands([
     {
         command: 'chatowner',
         description: 'Memberi pesan ke owner'
-    },
-    {
-        command: 'enc',
-        description: 'Encrypt file dengan polling'
     }
 ])
 .then(() => {
@@ -959,7 +954,142 @@ async function sendEncryptProgress(ctx, waitMsg, modeName) {
     }
 }
 
-// kacung prime
+// ============================================================
+// ==================== FUNGSI ENKRIPSI ========================
+// ============================================================
+
+function randomHex(length = 40){
+  return crypto.randomBytes(length).toString("hex")
+}
+
+function randomName(list){
+  const extra=["ツ","々","〆","メ","ん","ฬ","刃","ฬ","幻","零","鬼","魔","神","龍","風","月","闇","死","星","空","海","火","水","地","天"]
+  return list[Math.floor(Math.random()*list.length)] +
+    extra[Math.floor(Math.random()*extra.length)] +
+    Math.floor(Math.random()*99999)
+}
+
+function chaosVars(total=500,names=[]){
+  let out=""
+  for(let i=0;i<total;i++){
+    out += `var ${randomName(names)}="${randomHex(80)}";\n`
+  }
+  return out
+}
+
+function makeB64Style(code,names,count=500){
+  const b64 = Buffer.from(code).toString("base64")
+  const funcName = randomName(names)
+  const varName = randomName(names)
+
+  return `(function(){
+${chaosVars(count,names)}
+function ${funcName}(){
+const ${varName}="${b64}";
+return Buffer.from(${varName},"base64").toString();
+}
+eval(${funcName}());
+})();`
+}
+
+function artilleryStyle(code){
+  return makeB64Style(code,["つき","さくら","ほし","ゆき","ねこ","みず","かぜ","やみ"],600)
+}
+
+function hardcoreStyle(code){
+  const names=["悪魔","闇","無限","崩壊","零","死神","幻","滅"]
+  const b64=Buffer.from(code).toString("base64")
+  const funcName=randomName(names)
+  const varName=randomName(names)
+
+  return `(function(){
+${chaosVars(1000,names)}
+setInterval(()=>{debugger},1)
+console.clear()
+function ${funcName}(){
+const ${varName}="${b64}";
+return Buffer.from(${varName},"base64").toString();
+}
+eval(${funcName}());
+})();`
+}
+
+function phantomStyle(code){
+  const hex=Buffer.from(code).toString("hex")
+  return `eval(Buffer.from("${hex}","hex").toString())`
+}
+
+function balancedStyle(code){
+  return makeB64Style(code,["均衡","静","風","月"],300)
+}
+
+function reversedStyle(code){
+  const rev=code.split("").reverse().join("")
+  return `eval("${rev}".split("").reverse().join(""))`
+}
+
+function rosemaryStyle(code){
+  return makeB64Style(code,["薔薇","深夜","死","夢"],800)
+}
+
+function invisStyle(code){
+  const uni=escape(Buffer.from(code).toString("base64"))
+  return `eval(Buffer.from(unescape("${uni}"),"base64").toString())`
+}
+
+function japanStyle(code){
+  return makeB64Style(code,["つき","さくら","ほし","ねこ","そら","ゆき","みず","かぜ","れい","やみ","むげん","はな"],1500)
+}
+
+function arabStyle(code){
+  return makeB64Style(code,["سلام","قمر","نور","ليل","شمس","نار","روح","موت"],900)
+}
+
+function siuStyle(code){
+  return makeB64Style(code,["SIUU","RONALDO","GOAL","CR7"],600)
+}
+
+function nebulaStyle(code){
+  return makeB64Style(code,["星雲","宇宙","銀河","闇","ブラック","無限","ゼロ"],2500)
+}
+
+function varStyle(code){
+  return `(function(){${code}})();`
+}
+
+function customStyle(code,name){
+  const names=["改造","極限","混乱","破壊","地獄","暗黒","虚無"]
+  const b64=Buffer.from(code).toString("base64")
+  const funcName = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name) ? name : "CustomLoader"
+  const varName=randomName(names)
+
+  return `(function(){
+${chaosVars(1200,names)}
+function ${name}(){
+const ${varName}="${b64}";
+return Buffer.from(${varName},"base64").toString();
+}
+eval(${funcName}());
+})();`
+}
+
+function timeLockStyle(code,days){
+  const expired=Date.now()+(Number(days)*86400000)
+  const b64=Buffer.from(code).toString("base64")
+
+  return `(function(){
+if(Date.now()>${expired}){
+console.log("Script Expired");
+process.exit();
+}
+eval(Buffer.from("${b64}","base64").toString());
+})();`
+}
+
+// ============================================================
+// ==================== KACUNG PRIME ===========================
+// ============================================================
+
 async function processObfuscate(
     ctx,
     obfuscator,
@@ -1483,141 +1613,9 @@ untuk menampilkan menu owner.</blockquote>
 
     }
 )
-// ==================== RANDOM ====================
 
+// ==================== COMMAND ENKRIPSI ====================
 
-// Fixed helper functions
-
-function randomHex(length = 40){
-  return crypto.randomBytes(length).toString("hex")
-}
-
-function randomName(list){
-  const extra=["ツ","々","〆","メ","ん","ฬ","刃","ฬ"]
-  return list[Math.floor(Math.random()*list.length)] +
-    extra[Math.floor(Math.random()*extra.length)] +
-    Math.floor(Math.random()*99999)
-}
-
-function chaosVars(total=500,names=[]){
-  let out=""
-  for(let i=0;i<total;i++){
-    out += `var ${randomName(names)}="${randomHex(80)}";\n`
-  }
-  return out
-}
-
-function makeB64Style(code,names,count=500){
-  const b64 = Buffer.from(code).toString("base64")
-  const funcName = randomName(names)
-  const varName = randomName(names)
-
-  return `(function(){
-${chaosVars(count,names)}
-function ${funcName}(){
-const ${varName}="${b64}";
-return Buffer.from(${varName},"base64").toString();
-}
-eval(${funcName}());
-})();`
-}
-
-function artilleryStyle(code){
-  return makeB64Style(code,["つき","さくら","ほし","ゆき","ねこ","みず","かぜ","やみ"],600)
-}
-
-function hardcoreStyle(code){
-  const names=["悪魔","闇","無限","崩壊","零","死神","幻","滅"]
-  const b64=Buffer.from(code).toString("base64")
-  const funcName=randomName(names)
-  const varName=randomName(names)
-
-  return `(function(){
-${chaosVars(1000,names)}
-setInterval(()=>{debugger},1)
-console.clear()
-function ${funcName}(){
-const ${varName}="${b64}";
-return Buffer.from(${varName},"base64").toString();
-}
-eval(${funcName}());
-})();`
-}
-
-function phantomStyle(code){
-  const hex=Buffer.from(code).toString("hex")
-  return `eval(Buffer.from("${hex}","hex").toString())`
-}
-
-function balancedStyle(code){
-  return makeB64Style(code,["均衡","静","風","月"],300)
-}
-
-function reversedStyle(code){
-  const rev=code.split("").reverse().join("")
-  return `eval("${rev}".split("").reverse().join(""))`
-}
-
-function rosemaryStyle(code){
-  return makeB64Style(code,["薔薇","深夜","死","夢"],800)
-}
-
-function invisStyle(code){
-  const uni=escape(Buffer.from(code).toString("base64"))
-  return `eval(Buffer.from(unescape("${uni}"),"base64").toString())`
-}
-
-function japanStyle(code){
-  return makeB64Style(code,["つき","さくら","ほし","ねこ","そら","ゆき","みず","かぜ","れい","やみ","むげん","はな"],1500)
-}
-
-function arabStyle(code){
-  return makeB64Style(code,["سلام","قمر","نور","ليل","شمس","نار","روح","موت"],900)
-}
-
-function siuStyle(code){
-  return makeB64Style(code,["SIUU","RONALDO","GOAL","CR7"],600)
-}
-
-function nebulaStyle(code){
-  return makeB64Style(code,["星雲","宇宙","銀河","闇","ブラック","無限","ゼロ"],2500)
-}
-
-function varStyle(code){
-  return `(function(){${code}})();`
-}
-
-function customStyle(code,name){
-  const names=["改造","極限","混乱","破壊","地獄","暗黒","虚無"]
-  const b64=Buffer.from(code).toString("base64")
-  const funcName = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name) ? name : "CustomLoader"
-  const varName=randomName(names)
-
-  return `(function(){
-${chaosVars(1200,names)}
-function ${funcName}(){
-const ${varName}="${b64}";
-return Buffer.from(${varName},"base64").toString();
-}
-eval(${funcName}());
-})();`
-}
-
-function timeLockStyle(code,days){
-  const expired=Date.now()+(Number(days)*86400000)
-  const b64=Buffer.from(code).toString("base64")
-
-  return `(function(){
-if(Date.now()>${expired}){
-console.log("Script Expired");
-process.exit();
-}
-eval(Buffer.from("${b64}","base64").toString());
-})();`
-}
-
-
-// COMMAND
 // /artillery
 bot.command(
 'artillery',
@@ -3620,463 +3618,6 @@ bot.on("text", async (ctx, next) => {
 
     }
 )
-
-// ==================== POLLING ENC ====================
-const pollingSession = new Map();
-
-// ==================== KEYBOARD POLLING ====================
-function getPollingKeyboard(selectedStyles = []) {
-    const style = getDiscoStyle();
-    const allStyles = [
-        { id: 'artillery', label: 'artillery' },
-        { id: 'hardcore', label: 'hardcore' },
-        { id: 'phantom', label: 'phantom' },
-        { id: 'balanced', label: 'balanced' },
-        { id: 'reversed', label: 'reversed' },
-        { id: 'rosemary', label: 'rosemary' },
-        { id: 'invisenc', label: 'invisenc' },
-        { id: 'japanenc', label: 'japanenc' },
-        { id: 'encarab', label: 'encarab' },
-        { id: 'siuenc', label: 'siuenc' },
-        { id: 'japan', label: 'japan' },
-        { id: 'nebula', label: 'nebula' },
-        { id: 'var', label: 'var' },
-        { id: 'enc time', label: '⏰ enc time' },
-        { id: 'enc custom', label: '🎨 enc custom' }
-    ];
-    
-    const keyboard = [];
-    let row = [];
-    
-    allStyles.forEach((styleItem, index) => {
-        const isSelected = selectedStyles.includes(styleItem.id);
-        const icon = isSelected ? '✅' : '⬜';
-        row.push({ 
-            text: `${icon} ${styleItem.label}`, 
-            callback_data: `poll_toggle_${styleItem.id}`,
-            style: style
-        });
-        
-        if (row.length === 2) {
-            keyboard.push(row);
-            row = [];
-        }
-    });
-    
-    if (row.length > 0) keyboard.push(row);
-    
-    keyboard.push([
-        { text: "⚡ ENCRYPT SELECTED", callback_data: "poll_encrypt", style: style }
-    ]);
-    keyboard.push([
-        { text: "⪨ KEMBALI", callback_data: "main_menu", style: style }
-    ]);
-    
-    return { inline_keyboard: keyboard };
-}
-
-// ==================== COMMAND /ENC ====================
-bot.command('enc', async (ctx) => {
-    const userId = ctx.from.id;
-    
-    if (!isUserHasAccess(userId) && userId !== config.OWNER_ID) {
-        return ctx.reply("❌ Akses ditolak.");
-    }
-    
-    if (!ctx.message.reply_to_message) {
-        return ctx.reply(
-            `<blockquote><b>❌ Cara Penggunaan</b></blockquote>
-<blockquote>Reply file <b>.js</b> atau <b>.html</b>
-Lalu kirim: <code>/enc</code></blockquote>`,
-            { parse_mode: "HTML" }
-        );
-    }
-    
-    const replied = ctx.message.reply_to_message;
-    let fileId = null;
-    let fileName = "script";
-    let fileType = "js";
-    let codeContent = "";
-    
-    if (replied.document) {
-        const name = replied.document.file_name || "";
-        const ext = path.extname(name).toLowerCase();
-        
-        if (![".js", ".html", ".txt"].includes(ext)) {
-            return ctx.reply("❌ Hanya file .js atau .html yang didukung.");
-        }
-        
-        fileId = replied.document.file_id;
-        fileName = name.replace(/\.[^/.]+$/, "");
-        fileType = ext.replace(".", "");
-        
-        try {
-            const file = await ctx.telegram.getFile(fileId);
-            const link = `https://api.telegram.org/file/bot${config.BOT_TOKEN}/${file.file_path}`;
-            const res = await axios.get(link);
-            codeContent = res.data;
-        } catch (err) {
-            console.error("Gagal download file:", err.message);
-        }
-        
-    } else if (replied.text) {
-        codeContent = replied.text;
-        fileName = 'code';
-        fileType = 'txt';
-    } else {
-        return ctx.reply("❌ Reply file .js atau .html");
-    }
-    
-    pollingSession.set(userId, {
-        fileId: fileId,
-        fileName: fileName,
-        fileType: fileType,
-        code: codeContent,
-        selectedStyles: [],
-        step: 'select_style'
-    });
-    
-    const caption = `\`\`\`js
-📦 TARGET LOCKED
-📄 File: ${fileName}.${fileType}
-👤 User: ${ctx.from.first_name}
-
-Please select the style you want
-
-Poll\`\`\``;
-    
-    const thumb = await getThumbnailBuffer();
-    const keyboard = getPollingKeyboard([]);
-    let sentMsg;
-    
-    if (thumb) {
-        sentMsg = await ctx.replyWithPhoto(
-            { source: thumb },
-            {
-                caption,
-                parse_mode: 'Markdown',
-                reply_markup: keyboard
-            }
-        );
-    } else {
-        sentMsg = await ctx.reply(
-            caption,
-            {
-                parse_mode: 'Markdown',
-                reply_markup: keyboard
-            }
-        );
-    }
-    
-    pollingSession.set(userId, {
-        ...pollingSession.get(userId),
-        messageId: sentMsg.message_id
-    });
-    
-    startDisco(ctx, sentMsg.message_id, () => getPollingKeyboard(pollingSession.get(userId)?.selectedStyles || []));
-});
-
-// ==================== POLLING TOGGLE ====================
-bot.action(/^poll_toggle_(.+)/, async (ctx) => {
-    const userId = ctx.from.id;
-    const styleId = ctx.match[1];
-    const session = pollingSession.get(userId);
-    
-    if (!session) {
-        await ctx.answerCbQuery("❌ Session expired!");
-        return;
-    }
-    
-    await ctx.answerCbQuery();
-    
-    const index = session.selectedStyles.indexOf(styleId);
-    if (index > -1) {
-        session.selectedStyles.splice(index, 1);
-    } else {
-        session.selectedStyles.push(styleId);
-    }
-    
-    const keyboard = getPollingKeyboard(session.selectedStyles);
-    const messageId = ctx.callbackQuery.message.message_id;
-    
-    try {
-        await ctx.telegram.editMessageReplyMarkup(
-            ctx.chat.id,
-            messageId,
-            undefined,
-            keyboard
-        );
-    } catch (err) {
-        if (!err.message.includes('message is not modified')) {
-            console.error('Edit markup error:', err);
-        }
-    }
-});
-
-// ==================== POLLING ENCRYPT ====================
-bot.action('poll_encrypt', async (ctx) => {
-    const userId = ctx.from.id;
-    const session = pollingSession.get(userId);
-    
-    if (!session) {
-        await ctx.answerCbQuery("❌ Session expired!");
-        return;
-    }
-    
-    if (session.selectedStyles.length === 0) {
-        await ctx.answerCbQuery("❌ Pilih minimal 1 style!", { show_alert: true });
-        return;
-    }
-    
-    // Cek enc time
-    if (session.selectedStyles.includes('enc time')) {
-        await ctx.answerCbQuery();
-        await ctx.deleteMessage(ctx.callbackQuery.message.message_id).catch(() => {});
-        
-        await ctx.reply(
-            `<blockquote><b>⏰ ENCRYPT WITH TIME LOCK</b></blockquote>
-<blockquote>Kirimkan <b>jumlah hari</b> masa berlaku file ini.</blockquote>
-<blockquote>Contoh: <code>30</code> = 30 hari</blockquote>
-<blockquote>Ketik <code>/batal</code> untuk membatalkan.</blockquote>`,
-            { parse_mode: "HTML" }
-        );
-        
-        session.step = 'waiting_time';
-        pollingSession.set(userId, session);
-        return;
-    }
-    
-    // Cek enc custom
-    if (session.selectedStyles.includes('enc custom')) {
-        await ctx.answerCbQuery();
-        await ctx.deleteMessage(ctx.callbackQuery.message.message_id).catch(() => {});
-        
-        await ctx.reply(
-            `<blockquote><b>🎨 ENCRYPT WITH CUSTOM NAME</b></blockquote>
-<blockquote>Kirimkan <b>nama</b> untuk fungsi encrypt.</blockquote>
-<blockquote>Contoh: <code>SabilOfficial</code></blockquote>
-<blockquote>⚠️ Tanpa spasi!</blockquote>
-<blockquote>Ketik <code>/batal</code> untuk membatalkan.</blockquote>`,
-            { parse_mode: "HTML" }
-        );
-        
-        session.step = 'waiting_custom';
-        pollingSession.set(userId, session);
-        return;
-    }
-    
-    await processPollingEncrypt(ctx, session);
-});
-
-// ==================== PROSES POLLING ENCRYPT ====================
-async function processPollingEncrypt(ctx, session) {
-    const userId = ctx.from.id;
-    const code = session.code || "";
-    const fileName = session.fileName || "script";
-    const selectedStyles = session.selectedStyles || [];
-    
-    if (!code) {
-        await ctx.reply("❌ Kode kosong.");
-        pollingSession.delete(userId);
-        return;
-    }
-    
-    if (session.messageId) {
-        await ctx.deleteMessage(session.messageId).catch(() => {});
-    }
-    
-    await ctx.reply(`🔍 Memulai encrypt untuk ${selectedStyles.length} style...`);
-    
-    const styleMap = {
-        'artillery': { name: 'Artillery', func: artilleryStyle },
-        'hardcore': { name: 'Hardcore', func: hardcoreStyle },
-        'phantom': { name: 'Phantom', func: phantomStyle },
-        'balanced': { name: 'Balanced', func: balancedStyle },
-        'reversed': { name: 'Reversed', func: reversedStyle },
-        'rosemary': { name: 'Rosemary', func: rosemaryStyle },
-        'invisenc': { name: 'InvisEnc', func: invisStyle },
-        'japanenc': { name: 'JapanEnc', func: japanStyle },
-        'encarab': { name: 'EncArab', func: arabStyle },
-        'siuenc': { name: 'SiuEnc', func: siuStyle },
-        'japan': { name: 'Japan', func: japanStyle },
-        'nebula': { name: 'Nebula', func: nebulaStyle },
-        'var': { name: 'Var', func: varStyle }
-    };
-    
-    let successCount = 0;
-    let failCount = 0;
-    
-    for (const styleId of selectedStyles) {
-        const style = styleMap[styleId];
-        if (!style) continue;
-        
-        try {
-            const waitMsg = await ctx.reply(`🔄 Encrypting ${style.name}...`);
-            await sendEncryptProgress(ctx, waitMsg, style.name);
-            
-            const obfuscated = style.func(code);
-            const buffer = Buffer.from(obfuscated, "utf8");
-            const outputFilename = `${String(style.name).toLowerCase()}-encrypt-${fileName}.js`;
-            
-            await ctx.replyWithDocument(
-                { source: buffer, filename: outputFilename },
-                { caption: `✅ Mode: ${style.name}\n📄 File: ${fileName}\n🔒 Berhasil di encrypt` }
-            );
-            
-            await ctx.deleteMessage(waitMsg.message_id).catch(() => {});
-            successCount++;
-            
-        } catch (err) {
-            console.error(`Encrypt ${style.name} error:`, err);
-            await ctx.reply(`❌ Gagal encrypt ${style.name}: ${err.message}`);
-            failCount++;
-        }
-    }
-    
-    await ctx.reply(
-        `<blockquote><b>✅ ENCRYPT SELESAI</b></blockquote>
-<blockquote>
-✅ Berhasil: ${successCount}
-❌ Gagal: ${failCount}
-📄 File: ${fileName}
-</blockquote>`,
-        { parse_mode: "HTML" }
-    );
-    
-    pollingSession.delete(userId);
-}
-
-// ==================== HANDLER TIME & CUSTOM ====================
-bot.on('text', async (ctx, next) => {
-    const userId = ctx.from.id;
-    const session = pollingSession.get(userId);
-    
-    if (!session || !['waiting_time', 'waiting_custom'].includes(session.step)) {
-        return next();
-    }
-    
-    if (ctx.message.text.startsWith('/')) {
-        return next();
-    }
-    
-    const text = ctx.message.text.trim();
-    
-    if (text.toLowerCase() === '/batal') {
-        pollingSession.delete(userId);
-        await ctx.reply("❌ Proses dibatalkan.");
-        return;
-    }
-    
-    // Handle time
-    if (session.step === 'waiting_time') {
-        const days = Number(text);
-        if (isNaN(days) || days < 1) {
-            await ctx.reply(
-                `<blockquote>❌ Masukkan <b>angka</b> yang valid (minimal 1 hari)</blockquote>
-<blockquote>Contoh: <code>30</code></blockquote>`,
-                { parse_mode: "HTML" }
-            );
-            return;
-        }
-        
-        const code = session.code || "";
-        const fileName = session.fileName || "script";
-        
-        if (!code) {
-            await ctx.reply("❌ Kode kosong.");
-            pollingSession.delete(userId);
-            return;
-        }
-        
-        try {
-            const waitMsg = await ctx.reply(`🔍 Memulai encrypt time lock (${days} hari)...`);
-            const obfuscated = timeLockStyle(code, days);
-            const buffer = Buffer.from(obfuscated, "utf8");
-            const outputFilename = `timelock-${days}d-encrypt-${fileName}.js`;
-            
-            const expiredDate = new Date(Date.now() + (days * 86400000));
-            const expiredFormatted = expiredDate.toLocaleDateString('id-ID', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-            
-            await ctx.replyWithDocument(
-                { source: buffer, filename: outputFilename },
-                { caption: `✅ Mode: Time Lock\n📅 Expired: ${days} hari (${expiredFormatted})\n📄 File: ${fileName}\n🔒 Berhasil di encrypt` }
-            );
-            
-            await ctx.deleteMessage(waitMsg.message_id).catch(() => {});
-            
-        } catch (err) {
-            console.error('Time lock encrypt error:', err);
-            await ctx.reply(`❌ Gagal encrypt: ${err.message}`);
-        }
-        
-        pollingSession.delete(userId);
-        return;
-    }
-    
-    // Handle custom
-    if (session.step === 'waiting_custom') {
-        if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(text)) {
-            await ctx.reply(
-                `<blockquote>❌ Nama tidak valid!</blockquote>
-<blockquote>Hanya huruf, angka, underscore (_), dan dollar ($)</blockquote>
-<blockquote>Tidak boleh ada spasi!</blockquote>
-<blockquote>Contoh: <code>SabilOfficial</code> atau <code>_MyLoader</code></blockquote>`,
-                { parse_mode: "HTML" }
-            );
-            return;
-        }
-        
-        const code = session.code || "";
-        const fileName = session.fileName || "script";
-        
-        if (!code) {
-            await ctx.reply("❌ Kode kosong.");
-            pollingSession.delete(userId);
-            return;
-        }
-        
-        try {
-            const waitMsg = await ctx.reply("🔍 Memulai proses encrypt custom...");
-            const obfuscated = customStyle(code, text);
-            const buffer = Buffer.from(obfuscated, "utf8");
-            const outputFilename = `custom-${text}-encrypt-${fileName}.js`;
-            
-            await ctx.replyWithDocument(
-                { source: buffer, filename: outputFilename },
-                { caption: `✅ Mode: Custom\n📌 Nama: ${text}\n📄 File: ${fileName}\n🔒 Berhasil di encrypt` }
-            );
-            
-            await ctx.deleteMessage(waitMsg.message_id).catch(() => {});
-            
-        } catch (err) {
-            console.error('Custom encrypt error:', err);
-            await ctx.reply(`❌ Gagal encrypt: ${err.message}`);
-        }
-        
-        pollingSession.delete(userId);
-        return;
-    }
-    
-    return next();
-});
-
-// ==================== COMMAND BATAL ====================
-bot.command('batal', async (ctx) => {
-    const userId = ctx.from.id;
-    if (pollingSession.has(userId)) {
-        pollingSession.delete(userId);
-        await ctx.reply("❌ Proses dibatalkan.");
-    } else {
-        await ctx.reply("ℹ️ Tidak ada proses yang berjalan.");
-    }
-});
-
 // kontol up
 // ==================== JALANKAN ====================
 // =============================
