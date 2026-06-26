@@ -949,7 +949,7 @@ async function sendEncryptProgress(ctx, waitMsg, modeName) {
         const filled = Math.round((step.percent / 100) * barLength);
         const bar = '▓'.repeat(filled) + '░'.repeat(barLength - filled);
         await ctx.telegram.editMessageText(waitMsg.chat.id, waitMsg.message_id, undefined, `\`\`\`js
-   ✅ Encrypt Berjalan\n ${step.text}\n ${bar} ${step.percent}%\`\`\``, { parse_mode: 'Markdown' });
+✅ Encrypt Berjalan\n ${step.text}\n ${bar} ${step.percent}%\`\`\``, { parse_mode: 'Markdown' });
         await new Promise(resolve => setTimeout(resolve, step.delay));
     }
 }
@@ -1076,6 +1076,8 @@ async function processObfuscate(
                 "utf8"
             )
 
+        const fileSizeMB = (buffer.length / (1024 * 1024)).toFixed(2)
+
         await ctx.replyWithDocument(
             {
                 source: buffer,
@@ -1083,8 +1085,11 @@ async function processObfuscate(
             },
             {
                 caption:
-                    `✅ Mode: ${modeName}\n` +
-                    `File berhasil di encrypt`
+                    `<blockquote><b>Proses Obf Selesai</b></blockquote>\n` +
+                    `File : ${outputFilename}\n` +
+                    `Size File : ${fileSizeMB} MB\n` +
+                    `Mode : ${modeName}`,
+                parse_mode: "HTML"
             }
         )
 
@@ -1326,7 +1331,7 @@ async function EncV2(ctx, messageId = null) {
     const keyboard = getEncV2Keyboard();
     const caption = `\`\`\`js
 ━━━ ⚙️ 𝖤𝗇𝖼𝗋𝗒𝗉𝗍 𝖬𝖾𝗇𝗎 𝖵𝟤 ━━━
- ♱ /enccustom 𝖢𝗎𝗌𝗍𝗈𝗆 𝖭𝖺𝗆𝖾
+ ♱ /custom 𝖢𝗎𝗌𝗍𝗈𝗆 𝖭𝖺𝗆𝖾
  ♱ /invisenc 𝖨𝗇𝗏𝗂𝗌𝖻𝗅𝖾 𝖧𝖺𝗋𝖽
  ♱ /japanenc 𝖩𝖺𝗉𝖺𝗇𝖾𝗌𝖾 𝖲𝗍𝗒𝗅𝖾
  ♱ /encarab 𝖠𝗋𝖺𝖻 𝖲𝗍𝗒𝗅𝖾
@@ -1337,7 +1342,7 @@ async function EncV2(ctx, messageId = null) {
  ♱ /invishtml Encrypt Hmtl
 
 ━━━ 🔍 Cara Penggunaan ━━━
- ♱ /enccustom 果Prime皮Sabil出
+ ♱ /custom 果Prime皮Sabil出
  ♱ Jangan ada spasi dalam text\`\`\`
 `;
     const thumb = await getThumbnailBuffer();
@@ -2127,152 +2132,46 @@ module.exports = {
 
 // COMMAND
 // /artillery
-bot.command(
-'artillery',
-(ctx)=>
-processObfuscate(
-ctx,
-artilleryStyle,
-'Artillery'
-)
-)
+bot.command('artillery', (ctx) => processObfuscate(ctx, artilleryStyle, 'Artillery'))
 
 // /hardcore
-bot.command(
-'hardcore',
-(ctx)=>
-processObfuscate(
-ctx,
-hardcoreStyle,
-'Hardcore'
-)
-)
+bot.command('hardcore', (ctx) => processObfuscate(ctx, hardcoreStyle, 'Hardcore'))
 
 // /phantom
-bot.command(
-'phantom',
-(ctx)=>
-processObfuscate(
-ctx,
-phantomStyle,
-'Phantom'
-)
-)
+bot.command('phantom', (ctx) => processObfuscate(ctx, phantomStyle, 'Phantom'))
 
 // /balanced
-bot.command(
-'balanced',
-(ctx)=>
-processObfuscate(
-ctx,
-balancedStyle,
-'Balanced'
-)
-)
+bot.command('balanced', (ctx) => processObfuscate(ctx, balancedStyle, 'Balanced'))
 
 // /reversed
-bot.command(
-'reversed',
-(ctx)=>
-processObfuscate(
-ctx,
-reversedStyle,
-'Reversed'
-)
-)
+bot.command('reversed', (ctx) => processObfuscate(ctx, reversedStyle, 'Reversed'))
 
 // /rosemary
-bot.command(
-'rosemary',
-(ctx)=>
-processObfuscate(
-ctx,
-rosemaryStyle,
-'Rosemary'
-)
-)
+bot.command('rosemary', (ctx) => processObfuscate(ctx, rosemaryStyle, 'Rosemary'))
 
 // /invisenc
-bot.command(
-'invisenc',
-(ctx)=>
-processObfuscate(
-ctx,
-invisStyle,
-'InvisEnc'
-)
-)
+bot.command('invisenc', (ctx) => processObfuscate(ctx, invisStyle, 'InvisEnc'))
 
 // /japanenc
-bot.command(
-'japanenc',
-(ctx)=>
-processObfuscate(
-ctx,
-japanStyle,
-'japanenc'
-)
-)
+bot.command('japanenc', (ctx) => processObfuscate(ctx, japanStyle, 'japanenc'))
 
 // /encarab
-bot.command(
-'encarab',
-(ctx)=>
-processObfuscate(
-ctx,
-arabStyle,
-'encarab'
-)
-)
+bot.command('encarab', (ctx) => processObfuscate(ctx, arabStyle, 'encarab'))
 
 // /siuenc
-bot.command(
-'siuenc',
-(ctx)=>
-processObfuscate(
-ctx,
-siuStyle,
-'siuenc'
-)
-)
+bot.command('siuenc', (ctx) => processObfuscate(ctx, siuStyle, 'siuenc'))
 
 // /japan
-bot.command(
-'japan',
-(ctx)=>
-processObfuscate(
-ctx,
-japanStyle,
-'Japan'
-)
-)
+bot.command('japan', (ctx) => processObfuscate(ctx, japanStyle, 'Japan'))
 
 // /nebula
-bot.command(
-'nebula',
-(ctx)=>
-processObfuscate(
-ctx,
-nebulaStyle,
-'Nebula'
-)
-)
+bot.command('nebula', (ctx) => processObfuscate(ctx, nebulaStyle, 'Nebula'))
 
 // /var
-bot.command(
-'var',
-(ctx)=>
-processObfuscate(
-ctx,
-varStyle,
-'Var'
-)
-)
+bot.command('var', (ctx) => processObfuscate(ctx, varStyle, 'Var'))
 
 // /enctime
-bot.command(
-'enctime',
-async(ctx)=>{
+bot.command('enctime', async(ctx)=>{
 
 const days =
 ctx.message.text
@@ -2295,10 +2194,8 @@ ctx,
 }
 )
 
-// /enccustom
-bot.command(
-'enccustom',
-async(ctx)=>{
+// /custom
+bot.command('custom', async(ctx)=>{
 
 const text =
 ctx.message.text
@@ -2309,7 +2206,7 @@ ctx.message.text
 if(!text){
 
 return ctx.reply(
-'❌ Example : /enccustom SabilOfficial'
+'❌ Example : /custom 克Optimus罗Prime塔',
 )
 
 }
@@ -2317,7 +2214,7 @@ return ctx.reply(
 await processObfuscate(
 ctx,
 (code)=>customStyle(code, text),
-'EncCustom'
+'custom'
 )
 
 }
