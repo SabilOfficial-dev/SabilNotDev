@@ -1482,482 +1482,633 @@ untuk menampilkan menu owner.</blockquote>
 
 
 // Fixed helper functions
+const ZW = "\u200c"
 
-function randomHex(length = 40) {
-  return crypto.randomBytes(length).toString("hex")
+/** Encode string: randomly alternate \uXXXX and \xXX escapes */
+function encStr(s) {
+  return s.split("").map(c => {
+    const code = c.charCodeAt(0)
+    return Math.random() > 0.5
+      ? "\\u" + code.toString(16).padStart(4, "0")
+      : "\\x" + code.toString(16).padStart(2, "0")
+  }).join("")
 }
 
-function randomName(list) {
-  const extra = ["ツ", "々", "〆", "メ", "ん", "ฬ", "刃", "ฬ"]
-  return (
-    list[Math.floor(Math.random() * list.length)] +
-    extra[Math.floor(Math.random() * extra.length)] +
-    Math.floor(Math.random() * 99999)
-  )
-}
-
-/** Build a flat const array of obfuscated strings/values, returns [arrayName, arrayCode] */
-function buildConstArray(arrayName, strings) {
-  const items = strings.map((s) => {
-    if (typeof s === "string") {
-      // encode each char as unicode escape
-      return (
-        '"' +
-        s
-          .split("")
-          .map((c) =>
-            Math.random() > 0.5
-              ? "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0")
-              : "\\x" + c.charCodeAt(0).toString(16).padStart(2, "0")
-          )
-          .join("") +
-        '"'
-      )
-    }
-    return JSON.stringify(s)
-  })
-  return `const ${arrayName}=[${items.join(",")}]`
-}
-
-/** Wrap a string so every char is a unicode/hex escape */
-function escStr(s) {
-  return s
-    .split("")
-    .map((c) =>
-      Math.random() > 0.5
-        ? "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0")
-        : "\\x" + c.charCodeAt(0).toString(16).padStart(2, "0")
-    )
-    .join("")
-}
-
-/** Generate `count` junk var declarations using names from `names` */
-function chaosVars(total = 500, names = []) {
-  let out = ""
-  for (let i = 0; i < total; i++) {
-    out += `var ${randomName(names)}="${randomHex(80)}";\n`
+/** Produce a random alphanumeric identifier (no special chars) */
+function randId(len = 7) {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+  const nums  = "0123456789"
+  let s = chars[Math.floor(Math.random() * chars.length)]
+  for (let i = 1; i < len; i++) {
+    const pool = chars + nums
+    s += pool[Math.floor(Math.random() * pool.length)]
   }
-  return out
+  return s
 }
 
-// ─── japan-style  (Japanese hiragana variable names + flat const array) ──────
+/** Inject zero-width chars randomly into an identifier */
+function zwInject(name, density = 0.5) {
+  return name.split("").map(c => Math.random() < density ? c + ZW : c).join("")
+}
 
+/** Build a flat const array that contains all the template strings + payload */
+function buildArray(arrName, items) {
+  const encoded = items.map(item => {
+    if (typeof item === "string") {
+      // decide: use "\\xNN\\xNN" or "\\uNNNN\\uNNNN" style per char
+      const escaped = item.split("").map(c => {
+        const code = c.charCodeAt(0)
+        if (code < 128) {
+          return Math.random() > 0.5
+            ? "\\u" + code.toString(16).padStart(4, "0")
+            : "\\x" + code.toString(16).padStart(2, "0")
+        }
+        return "\\u" + code.toString(16).padStart(4, "0")
+      }).join("")
+      return `"${escaped}"`
+    }
+    if (item === null)      return "null"
+    if (item === undefined) return "undefined"
+    if (item === true)      return "true"
+    if (item === false)     return "false"
+    if (typeof item === "number") return String(item)
+    return JSON.stringify(item)
+  })
+  return `const ${arrName}=[${encoded.join(",")}]`
+}
+
+/** The shift-loop function boilerplate */
+function shiftFn(fnName, arrParam, loopVar) {
+  return `function ${fnName}(${fnName},${arrParam}){for(var ${loopVar}=0;${loopVar}<${arrParam};${loopVar}++){${fnName}["${encStr("push")}"](${fnName}["${encStr("shift")}"]())}return ${fnName}}`
+}
+
+/**
+ * Build the full obfuscated IIFE from parts:
+ * arr[IDX_WRAPPER_OPEN] + fnName + arr[IDX_B64VAR] + b64payload + arr[IDX_RETURN] + arr[IDX_CLOSE]
+ * All indices are stored in the const array itself.
+ *
+ * Array layout used by the IIFE (appended at end of array):
+ *   [base]   = "\n(function(){\n\nfunction "
+ *   [base+1] = "()\n{\n\nconst "
+ *   [base+2] = "=\""                         <-- varName ="
+ *   [base+3] = b64payload
+ *   [base+4] = "\"\n\nreturn Buffer\n.from(\n"
+ *   [base+5] = ",\n\"base64\"\n)\n.toString()\n\n}\n\neval(\n"
+ *   [base+6] = "()\n)\n\n})()\n"
+ */
+function buildIIFE(arrName, b64, funcIdxName, varIdxName, base, debugger_ = false) {
+  const debugPart = debugger_
+    ? `\n\nsetInterval(()=>{\n\ndebugger\n\n},1)\n\nconsole.clear()\n\nfunction `
+    : `\n\nfunction `
+
+  const wrapperOpen   = `\n(function(){\n\n` + (debugger_ ? `setInterval(()=>{\n\ndebugger\n\n},1)\n\nconsole.clear()\n\nfunction ` : `function `)
+  const funcOpen      = `(){\n\nconst `
+  const assign        = `="`
+  const retBuf        = `"\n\nreturn Buffer\n.from(\n`
+  const retClose      = `,\n"base64"\n)\n.toString()\n\n}\n\neval(\n`
+  const iifClose      = `()\n)\n\n})()\n`
+
+  return {
+    templateItems: [wrapperOpen, funcOpen, assign, b64, retBuf, retClose, iifClose],
+    // generates: arr[b]+funcName+arr[b+1]+varName+arr[b+2]+b64+arr[b+3]+arr[b+4]+funcName+arr[b+5]+arr[b+6]
+    // but since b64 is already in arr[b+3], the IIFE just uses array refs:
+    iife: `${arrName}[${base}]+${funcIdxName}+${arrName}[${base+1}]+${varIdxName}+${arrName}[${base+2}]+${arrName}[${base+3}]+${arrName}[${base+4}]+${arrName}[${base+5}]+${funcIdxName}+${arrName}[${base+6}]`
+  }
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STYLE: balanced
+// Identifiers: random alphanum with zero-width chars injected
+// Const array: decimal numbers, escaped strings
+// ─────────────────────────────────────────────────────────────────────────────
+function balancedStyle(code) {
+  const arrName  = zwInject(randId(8), 0.4)
+  const shiftFnN = zwInject(randId(8), 0.4)
+  const loopVar  = zwInject(randId(8), 0.3)
+  const mainFnN  = zwInject(randId(8), 0.4)
+  const b64VarN  = zwInject(randId(8), 0.4)
+
+  const b64 = Buffer.from(code).toString("base64")
+
+  // Items: numbers + kanji mood words + template strings
+  const baseIdx = 10
+  const templateItems = [
+    `\n(function(){\n\nfunction `,
+    `(){\n\nconst `,
+    `="`,
+    b64,
+    `"\n\nreturn Buffer\n.from(\n`,
+    `,\n"base64"\n)\n.toString()\n\n}\n\neval(\n`,
+    `()\n)\n\n})()\n`
+  ]
+
+  const items = [
+    null, 0, 1, 2, 4, 8, 16, 32, 64, 128,
+    ...templateItems
+  ]
+
+  const arrayCode = buildArray(arrName, items)
+  const shift = shiftFn(shiftFnN, arrName, loopVar)
+
+  const iife = `eval(${arrName}[${baseIdx}]+${JSON.stringify(mainFnN)}+${arrName}[${baseIdx+1}]+${JSON.stringify(b64VarN)}+${arrName}[${baseIdx+2}]+${arrName}[${baseIdx+3}]+${arrName}[${baseIdx+4}]+${arrName}[${baseIdx+5}]+${JSON.stringify(mainFnN)}+${arrName}[${baseIdx+6}])`
+
+  return `${shift}\n${arrayCode}\n${iife}`
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STYLE: japan
+// Identifiers: hiragana chars with zero-width injected
+// Const array: decimal numbers + hiragana words + template strings
+// ─────────────────────────────────────────────────────────────────────────────
 function japanStyle(code) {
   const kana = "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん"
-  const pick = () => {
-    let s = ""
-    for (let i = 0; i < 5 + Math.floor(Math.random() * 4); i++)
-      s += kana[Math.floor(Math.random() * kana.length)]
-    return s
+  const pickKana = (n=5) => Array.from({length:n+Math.floor(Math.random()*4)},
+    ()=>kana[Math.floor(Math.random()*kana.length)]).join("")
+
+  const arrName  = pickKana()
+  const shiftFnN = pickKana()
+  const loopVar  = pickKana()
+  const mainFnN  = pickKana()
+  const b64VarN  = pickKana()
+
+  const b64 = Buffer.from(code).toString("base64")
+
+  const baseIdx = 10
+  const items = [
+    null, 0, 1, 2, 4, 8, 16, 32, 64, 128,
+    `\n(function(){\n\nfunction `,
+    `(){\n\nconst `,
+    `="`,
+    b64,
+    `"\n\nreturn Buffer\n.from(\n`,
+    `,\n"base64"\n)\n.toString()\n\n}\n\neval(\n`,
+    `()\n)\n\n})()\n`
+  ]
+
+  const arrayCode = buildArray(arrName, items)
+  const shift = shiftFn(shiftFnN, arrName, loopVar)
+  const iife = `eval(${arrName}[${baseIdx}]+${JSON.stringify(mainFnN)}+${arrName}[${baseIdx+1}]+${JSON.stringify(b64VarN)}+${arrName}[${baseIdx+2}]+${arrName}[${baseIdx+3}]+${arrName}[${baseIdx+4}]+${arrName}[${baseIdx+5}]+${JSON.stringify(mainFnN)}+${arrName}[${baseIdx+6}])`
+
+  return `${shift}\n${arrayCode}\n${iife}`
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STYLE: arab
+// Identifiers: arabic letter words
+// ─────────────────────────────────────────────────────────────────────────────
+function arabStyle(code) {
+  const arabChars = "ابتثجحخدذرزسشصضطظعغفقكلمنهوي"
+  const pickArab = (n=4) => Array.from({length:n+Math.floor(Math.random()*4)},
+    ()=>arabChars[Math.floor(Math.random()*arabChars.length)]).join("")
+
+  const arrName  = pickArab()
+  const shiftFnN = pickArab()
+  const loopVar  = pickArab(3)
+  const mainFnN  = pickArab()
+  const b64VarN  = pickArab()
+
+  const b64 = Buffer.from(code).toString("base64")
+
+  const baseIdx = 10
+  const items = [
+    null, 0, 1, 2, 4, 8, 16, 32, 64, 128,
+    `\n(function(){\n\nfunction `,
+    `(){\n\nconst `,
+    `="`,
+    b64,
+    `"\n\nreturn Buffer\n.from(\n`,
+    `,\n"base64"\n)\n.toString()\n\nreturn ${b64VarN}\n}\n\neval(\n`,
+    `()\n)\n\n})()\n`
+  ]
+
+  const arrayCode = buildArray(arrName, items)
+  const shift = shiftFn(shiftFnN, arrName, loopVar)
+  const iife = `eval(${arrName}[${baseIdx}]+${JSON.stringify(mainFnN)}+${arrName}[${baseIdx+1}]+${JSON.stringify(b64VarN)}+${arrName}[${baseIdx+2}]+${arrName}[${baseIdx+3}]+${arrName}[${baseIdx+4}]+${arrName}[${baseIdx+5}]+${JSON.stringify(mainFnN)}+${arrName}[${baseIdx+6}])`
+
+  return `${shift}\n${arrayCode}\n${iife}`
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STYLE: hardcore
+// Identifiers: random alphanum, NO zero-width, leading var declarations
+// Const array: numbers written in 0x HEX format
+// Includes setInterval(debugger) trap
+// ─────────────────────────────────────────────────────────────────────────────
+function hardcoreStyle(code) {
+  const arrName  = randId(6)
+  const shiftFnN = randId(6)
+  const loopVar  = randId(6)
+  const mainFnN  = randId(6)
+  const b64VarN  = randId(6)
+
+  // generate extra top-level var declarations (like hardcore-style.js)
+  const extraVars = Array.from({length:17}, ()=>randId(7)).join(",")
+
+  const b64 = Buffer.from(code).toString("base64")
+
+  // hardcore uses 0x hex for numbers
+  function hexNum(n) { return "0x" + n.toString(16) }
+
+  const baseIdx = 10
+  const items = [
+    null, hexNum(0), hexNum(1), hexNum(2), hexNum(4),
+    hexNum(8), hexNum(16), hexNum(32), hexNum(64), hexNum(128),
+    `\n(function(){\n\nsetInterval(()=>{\n\ndebugger\n\n},1)\n\nconsole.clear()\n\nfunction `,
+    `(){\n\nconst `,
+    `="`,
+    b64,
+    `"\n\nreturn Buffer\n.from(\n`,
+    `,\n"base64"\n)\n.toString()\n\n}\n\neval(\n`,
+    `()\n)\n\n})()\n`
+  ]
+
+  // For hardcore, encode number items as 0x hex strings in array
+  const encodedItems = items.map(item => {
+    if (typeof item === "string" && item.startsWith("0x")) return item // already hex
+    if (typeof item === "string") {
+      const escaped = item.split("").map(c => {
+        const code2 = c.charCodeAt(0)
+        return Math.random() > 0.5
+          ? "\\u" + code2.toString(16).padStart(4,"0")
+          : "\\x" + code2.toString(16).padStart(2,"0")
+      }).join("")
+      return `"${escaped}"`
+    }
+    if (item === null) return "null"
+    return String(item)
+  })
+
+  const arrayCode = `const ${arrName}=[${encodedItems.join(",")}]`
+  const shift = shiftFn(shiftFnN, arrName, loopVar)
+  const iife = `eval(${arrName}[${baseIdx}]+${JSON.stringify(mainFnN)}+${arrName}[${baseIdx+1}]+${JSON.stringify(b64VarN)}+${arrName}[${baseIdx+2}]+${arrName}[${baseIdx+3}]+${arrName}[${baseIdx+4}]+${arrName}[${baseIdx+5}]+${JSON.stringify(mainFnN)}+${arrName}[${baseIdx+6}])`
+
+  return `var ${extraVars};\n${shift}\n${arrayCode}\n${iife}`
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STYLE: phantom
+// Identifiers: JS RESERVED KEYWORDS + hundreds of U+200C appended
+// (this‌‌‌‌, typeof‌‌‌‌, void‌‌‌‌, in‌‌‌‌, new‌‌‌‌)
+// ─────────────────────────────────────────────────────────────────────────────
+function phantomStyle(code) {
+  const ZWS = ZW  // U+200C
+  const reserved = ["this","typeof","void","in","new","return","delete","throw","case","try"]
+
+  function zwKw(kw, n) {
+    return kw + ZWS.repeat(n)
   }
 
-  const arrName = pick()
-  const fnShift = pick()
-  const fnMain = pick()
-  const varB64 = pick()
+  // generate unique identifiers from reserved words + different ZW counts
+  let counter = 100
+  const ids = {}
+  const pick = (base) => {
+    if (!ids[base]) ids[base] = 0
+    ids[base]++
+    return zwKw(base, counter++ )
+  }
 
-  const strings = [
-    "push",
-    "shift",
-    "from",
-    "base64",
-    "toString",
-    "eval",
-    ...Array.from({ length: 40 }, () => randomHex(4)),
-  ]
+  const r = reserved
+  const arrName  = pick(r[0])  // this‌‌‌...
+  const shiftFnN = pick(r[1])  // typeof‌‌‌...
+  const loopVar  = pick(r[2])  // void‌‌‌...
+  const mainFnN  = pick(r[3])  // in‌‌‌...
+  const b64VarN  = pick(r[4])  // new‌‌‌...
 
-  const arrayCode = buildConstArray(arrName, strings)
   const b64 = Buffer.from(code).toString("base64")
 
-  return `function ${fnShift}(${fnShift},${arrName}){for(var ${varB64}=0;${varB64}<${arrName};${varB64}++){${fnShift}["${escStr("push")}"](${fnShift}["${escStr("shift")}"]())}return ${fnShift}}
-${arrayCode}
-${chaosVars(1500, Array.from({ length: 30 }, pick))}
-;(function(){
-function ${fnMain}(){
-const ${varB64}="${b64}";
-return Buffer["${escStr("from")}"](${varB64},"${escStr("base64")}")["${escStr("toString")}"]();
-}
-eval(${fnMain}());
-})();`
-}
-
-// ─── arab-style  (Arabic variable names + flat const array) ──────────────────
-
-function arabStyle(code) {
-  const arabic = ["سلام", "قمر", "نور", "ليل", "شمس", "نار", "روح", "موت", "نجم", "بحر"]
-  const pick = () =>
-    arabic[Math.floor(Math.random() * arabic.length)] +
-    Math.floor(Math.random() * 9999)
-
-  const arrName = pick()
-  const fnShift = pick()
-  const fnMain = pick()
-  const varB64 = pick()
-
-  const strings = [
-    "push",
-    "shift",
-    "from",
-    "base64",
-    "toString",
-    "eval",
-    ...Array.from({ length: 40 }, () => randomHex(4)),
+  const baseIdx = 10
+  const items = [
+    null, 0, 1, 2, 4, 8, 16, 32, 64, 128,
+    `\n(function(){\n\nfunction `,
+    `(){\n\nconst `,
+    `="`,
+    b64,
+    `"\n\nreturn Buffer\n.from(\n`,
+    `,\n"base64"\n)\n.toString()\n\n}\n\neval(\n`,
+    `()\n)\n\n})()\n`
   ]
 
-  const arrayCode = buildConstArray(arrName, strings)
-  const b64 = Buffer.from(code).toString("base64")
+  const arrayCode = buildArray(arrName, items)
+  const shift = shiftFn(shiftFnN, arrName, loopVar)
+  const iife = `eval(${arrName}[${baseIdx}]+${JSON.stringify(mainFnN)}+${arrName}[${baseIdx+1}]+${JSON.stringify(b64VarN)}+${arrName}[${baseIdx+2}]+${arrName}[${baseIdx+3}]+${arrName}[${baseIdx+4}]+${arrName}[${baseIdx+5}]+${JSON.stringify(mainFnN)}+${arrName}[${baseIdx+6}])`
 
-  return `function ${fnShift}(${fnShift},${arrName}){for(var ${varB64}=0;${varB64}<${arrName};${varB64}++){${fnShift}["${escStr("push")}"](${fnShift}["${escStr("shift")}"]())}return ${fnShift}}
-${arrayCode}
-${chaosVars(900, Array.from({ length: 20 }, pick))}
-;(function(){
-function ${fnMain}(){
-const ${varB64}="${b64}";
-return Buffer["${escStr("from")}"](${varB64},"${escStr("base64")}")["${escStr("toString")}"]();
-}
-eval(${fnMain}());
-})();`
+  return `${shift}\n${arrayCode}\n${iife}`
 }
 
-// ─── balanced-style  (mixed Japanese names, moderate chaos) ──────────────────
 
-function balancedStyle(code) {
-  const names = ["均衡", "静", "風", "月", "光", "水", "火", "土"]
-  const pick = () =>
-    names[Math.floor(Math.random() * names.length)] +
-    ["ツ", "々", "〆", "ฬ"][Math.floor(Math.random() * 4)] +
-    Math.floor(Math.random() * 9999)
-
-  const arrName = pick()
-  const fnShift = pick()
-  const fnMain = pick()
-  const varB64 = pick()
-
-  const strings = [
-    "push", "shift", "from", "base64", "toString",
-    ...Array.from({ length: 20 }, () => randomHex(4)),
-  ]
-
-  const arrayCode = buildConstArray(arrName, strings)
-  const b64 = Buffer.from(code).toString("base64")
-
-  return `function ${fnShift}(${fnShift},${arrName}){for(var ${varB64}=0;${varB64}<${arrName};${varB64}++){${fnShift}["${escStr("push")}"](${fnShift}["${escStr("shift")}"]())}return ${fnShift}}
-${arrayCode}
-${chaosVars(300, Array.from({ length: 15 }, pick))}
-;(function(){
-function ${fnMain}(){
-const ${varB64}="${b64}";
-return Buffer["${escStr("from")}"](${varB64},"${escStr("base64")}")["${escStr("toString")}"]();
-}
-eval(${fnMain}());
-})();`
-}
-
-// ─── hardcore-style  (kanji names + debugger trap + heavy chaos) ──────────────
-
-function hardcoreStyle(code) {
-  const names = ["悪魔", "闇", "無限", "崩壊", "零", "死神", "幻", "滅"]
-  const pick = () =>
-    names[Math.floor(Math.random() * names.length)] +
-    ["ツ", "々", "ฬ", "刃"][Math.floor(Math.random() * 4)] +
-    Math.floor(Math.random() * 99999)
-
-  const arrName = pick()
-  const fnShift = pick()
-  const fnMain = pick()
-  const varB64 = pick()
-
-  const strings = [
-    "push", "shift", "from", "base64", "toString",
-    ...Array.from({ length: 50 }, () => randomHex(4)),
-  ]
-
-  const arrayCode = buildConstArray(arrName, strings)
-  const b64 = Buffer.from(code).toString("base64")
-
-  return `function ${fnShift}(${fnShift},${arrName}){for(var ${varB64}=0;${varB64}<${arrName};${varB64}++){${fnShift}["${escStr("push")}"](${fnShift}["${escStr("shift")}"]())}return ${fnShift}}
-${arrayCode}
-${chaosVars(1000, Array.from({ length: 30 }, pick))}
-;(function(){
-setInterval(()=>{debugger},1)
-console["${escStr("clear")}"]()
-function ${fnMain}(){
-const ${varB64}="${b64}";
-return Buffer["${escStr("from")}"](${varB64},"${escStr("base64")}")["${escStr("toString")}"]();
-}
-eval(${fnMain}());
-})();`
-}
-
-// ─── phantom-style  (hex encoded, no variable name noise) ────────────────────
-
-function phantomStyle(code) {
-  const hex = Buffer.from(code).toString("hex")
-  const bufFrom = escStr("from")
-  const bufHex  = escStr("hex")
-  const bufTS   = escStr("toString")
-  return `eval(Buffer["${bufFrom}"]("${hex}","${bufHex}")["${bufTS}"]())`
-}
-
-// ─── artillery-style  (Japanese names, very heavy chaos 600) ─────────────────
-
+// ─────────────────────────────────────────────────────────────────────────────
+// STYLE: artillery
+// Identifiers: JS RESERVED KEYWORDS + massive U+200C padding (600+ chars wide)
+// (export‌‌‌‌...600, default‌‌‌‌...600, typeof‌‌‌‌...600)
+// ─────────────────────────────────────────────────────────────────────────────
 function artilleryStyle(code) {
-  const names = ["つき", "さくら", "ほし", "ゆき", "ねこ", "みず", "かぜ", "やみ"]
-  const pick = () =>
-    names[Math.floor(Math.random() * names.length)] +
-    ["ツ", "々", "ฬ", "ん"][Math.floor(Math.random() * 4)] +
-    Math.floor(Math.random() * 99999)
+  const ZWS = ZW
+  const PAD = 600
 
-  const arrName = pick()
-  const fnShift = pick()
-  const fnMain = pick()
-  const varB64 = pick()
+  const arrName  = "default" + ZWS.repeat(PAD + Math.floor(Math.random()*20))
+  const shiftFnN = "export"  + ZWS.repeat(PAD + Math.floor(Math.random()*20))
+  const loopVar  = "typeof"  + ZWS.repeat(PAD + Math.floor(Math.random()*20))
+  const mainFnN  = "export"  + ZWS.repeat(PAD + 50 + Math.floor(Math.random()*20))
+  const b64VarN  = "default" + ZWS.repeat(PAD + 50 + Math.floor(Math.random()*20))
 
-  const strings = [
-    "push", "shift", "from", "base64", "toString",
-    ...Array.from({ length: 50 }, () => randomHex(4)),
-  ]
-
-  const arrayCode = buildConstArray(arrName, strings)
   const b64 = Buffer.from(code).toString("base64")
 
-  return `function ${fnShift}(${fnShift},${arrName}){for(var ${varB64}=0;${varB64}<${arrName};${varB64}++){${fnShift}["${escStr("push")}"](${fnShift}["${escStr("shift")}"]())}return ${fnShift}}
-${arrayCode}
-${chaosVars(600, Array.from({ length: 25 }, pick))}
-;(function(){
-function ${fnMain}(){
-const ${varB64}="${b64}";
-return Buffer["${escStr("from")}"](${varB64},"${escStr("base64")}")["${escStr("toString")}"]();
-}
-eval(${fnMain}());
-})();`
+  const baseIdx = 10
+  const items = [
+    null, 0, 1, 2, 4, 8, 16, 32, 64, 128,
+    `\n(function(){\n\nfunction `,
+    `(){\n\nconst `,
+    `="`,
+    b64,
+    `"\n\nreturn Buffer\n.from(\n`,
+    `,\n"base64"\n)\n.toString()\n\n}\n\neval(\n`,
+    `()\n)\n\n})()\n`
+  ]
+
+  const arrayCode = buildArray(arrName, items)
+  const shift = shiftFn(shiftFnN, arrName, loopVar)
+  const iife = `eval(${arrName}[${baseIdx}]+${JSON.stringify(mainFnN)}+${arrName}[${baseIdx+1}]+${JSON.stringify(b64VarN)}+${arrName}[${baseIdx+2}]+${arrName}[${baseIdx+3}]+${arrName}[${baseIdx+4}]+${arrName}[${baseIdx+5}]+${JSON.stringify(mainFnN)}+${arrName}[${baseIdx+6}])`
+
+  return `${shift}\n${arrayCode}\n${iife}`
 }
 
-// ─── siu-style  (CR7 / football names) ───────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────────────────────
+// STYLE: siucalcrick
+// Identifiers: 'CalceKarik' + chinese kanji (和无与伦比的帅气) + random alphanum suffix
+// ─────────────────────────────────────────────────────────────────────────────
 function siuStyle(code) {
-  const names = ["SIUU", "RONALDO", "GOAL", "CR7", "BALLON", "DRIBBLE", "PENALTY"]
-  const pick = () =>
-    names[Math.floor(Math.random() * names.length)] +
-    "_" +
-    Math.floor(Math.random() * 99999)
+  const kanji = "和无与伦比的帅气超级厉害牛逼强大无敌"
+  const prefix = "CalceKarik"
+  const pickKanji = (n=8) => Array.from({length:n},
+    ()=>kanji[Math.floor(Math.random()*kanji.length)]).join("")
+  const mkId = () => prefix + pickKanji() + randId(6)
 
-  const arrName = pick()
-  const fnShift = pick()
-  const fnMain = pick()
-  const varB64 = pick()
+  const arrName  = mkId()
+  const shiftFnN = mkId()
+  const loopVar  = mkId()
+  const mainFnN  = mkId()
+  const b64VarN  = mkId()
 
-  const strings = [
-    "push", "shift", "from", "base64", "toString",
-    ...Array.from({ length: 40 }, () => randomHex(4)),
-  ]
-
-  const arrayCode = buildConstArray(arrName, strings)
   const b64 = Buffer.from(code).toString("base64")
 
-  return `function ${fnShift}(${fnShift},${arrName}){for(var ${varB64}=0;${varB64}<${arrName};${varB64}++){${fnShift}["${escStr("push")}"](${fnShift}["${escStr("shift")}"]())}return ${fnShift}}
-${arrayCode}
-${chaosVars(600, Array.from({ length: 20 }, pick))}
-;(function(){
-function ${fnMain}(){
-const ${varB64}="${b64}";
-return Buffer["${escStr("from")}"](${varB64},"${escStr("base64")}")["${escStr("toString")}"]();
-}
-eval(${fnMain}());
-})();`
+  const baseIdx = 10
+  const items = [
+    null, 0, 1, 2, 4, 8, 16, 32, 64, 128,
+    `\n(function(){\n\nfunction `,
+    `(){\n\nconst `,
+    `="`,
+    b64,
+    `"\n\nreturn Buffer\n.from(\n`,
+    `,\n"base64"\n)\n.toString()\n\n}\n\neval(\n`,
+    `()\n)\n\n})()\n`
+  ]
+
+  const arrayCode = buildArray(arrName, items)
+  const shift = shiftFn(shiftFnN, arrName, loopVar)
+  const iife = `eval(${arrName}[${baseIdx}]+${JSON.stringify(mainFnN)}+${arrName}[${baseIdx+1}]+${JSON.stringify(b64VarN)}+${arrName}[${baseIdx+2}]+${arrName}[${baseIdx+3}]+${arrName}[${baseIdx+4}]+${arrName}[${baseIdx+5}]+${JSON.stringify(mainFnN)}+${arrName}[${baseIdx+6}])`
+
+  return `${shift}\n${arrayCode}\n${iife}`
 }
 
-// ─── reversed-style  (reverse the source, eval on decode) ────────────────────
 
+// ─────────────────────────────────────────────────────────────────────────────
+// STYLE: reversed
+// Identifiers: kanji (難読化装置) interleaved with 'senzy' repeatedly
+// ─────────────────────────────────────────────────────────────────────────────
 function reversedStyle(code) {
-  const rev = code.split("").reverse().join("")
-  const splitEsc = escStr("split")
-  const revEsc   = escStr("reverse")
-  const joinEsc  = escStr("join")
-  return `eval("${rev.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"["${splitEsc}"]("")["${revEsc}"]()["${joinEsc}"](""))`
+  const kanjiParts = ["難読","化装置","読化","装置"]
+  const suffix = "senzy"
+  const mkId = () => {
+    let s = ""
+    const len = 4 + Math.floor(Math.random() * 4)
+    for (let i = 0; i < len; i++) {
+      s += kanjiParts[Math.floor(Math.random() * kanjiParts.length)]
+      if (i % 2 === 0) s += suffix
+    }
+    return s + randId(4)
+  }
+
+  const arrName  = mkId()
+  const shiftFnN = mkId()
+  const loopVar  = mkId()
+  const mainFnN  = mkId()
+  const b64VarN  = mkId()
+
+  const b64 = Buffer.from(code).toString("base64")
+
+  const baseIdx = 10
+  const items = [
+    null, 0, 1, 2, 4, 8, 16, 32, 64, 128,
+    `\n(function(){\n\nfunction `,
+    `(){\n\nconst `,
+    `="`,
+    b64,
+    `"\n\nreturn Buffer\n.from(\n`,
+    `,\n"base64"\n)\n.toString()\n\n}\n\neval(\n`,
+    `()\n)\n\n})()\n`
+  ]
+
+  const arrayCode = buildArray(arrName, items)
+  const shift = shiftFn(shiftFnN, arrName, loopVar)
+  const iife = `eval(${arrName}[${baseIdx}]+${JSON.stringify(mainFnN)}+${arrName}[${baseIdx+1}]+${JSON.stringify(b64VarN)}+${arrName}[${baseIdx+2}]+${arrName}[${baseIdx+3}]+${arrName}[${baseIdx+4}]+${arrName}[${baseIdx+5}]+${JSON.stringify(mainFnN)}+${arrName}[${baseIdx+6}])`
+
+  return `${shift}\n${arrayCode}\n${iife}`
 }
 
-// ─── var-style  (var_ prefixed names + flat const array, no Unicode noise) ───
 
+// ─────────────────────────────────────────────────────────────────────────────
+// STYLE: var-style
+// Identifiers: var_ prefix + random alphanum (NO unicode, NO zero-width)
+// Const array: decimal numbers only (not hex), leading var declarations
+// ─────────────────────────────────────────────────────────────────────────────
 function varStyle(code) {
-  const id = () => "var_" + Math.random().toString(36).slice(2, 8)
+  const mkId = () => "var_" + Math.random().toString(36).slice(2, 8)
 
-  const arrName = id()
-  const fnShift = id()
-  const fnMain  = id()
-  const varB64  = id()
-  const loopVar = id()
+  const arrName  = mkId()
+  const shiftFnN = mkId()
+  const loopVar  = mkId()
+  const mainFnN  = mkId()
+  const b64VarN  = mkId()
 
-  const strings = [
-    "push", "shift", "from", "base64", "toString",
-    ...Array.from({ length: 40 }, () => randomHex(4)),
-  ]
+  // extra pre-declarations like var-style.js
+  const extraVars = Array.from({length:15}, mkId).join(",")
 
-  const arrayCode = buildConstArray(arrName, strings)
   const b64 = Buffer.from(code).toString("base64")
 
-  return `function ${fnShift}(${fnShift},${arrName}){for(var ${loopVar}=0;${loopVar}<${arrName};${loopVar}++){${fnShift}["${escStr("push")}"](${fnShift}["${escStr("shift")}"]())}return ${fnShift}}
-${arrayCode}
-;(function(){
-function ${fnMain}(){
-const ${varB64}="${b64}";
-return Buffer["${escStr("from")}"](${varB64},"${escStr("base64")}")["${escStr("toString")}"]();
-}
-eval(${fnMain}());
-})();`
+  const baseIdx = 10
+  const items = [
+    null, 0, 1, 2, 4, 8, 16, 32, 64, 128,
+    `\n(function(){\n\nfunction `,
+    `(){\n\nconst `,
+    `="`,
+    b64,
+    `"\n\nreturn Buffer\n.from(\n`,
+    `,\n"base64"\n)\n.toString()\n\n}\n\neval(\n`,
+    `()\n)\n\n})()\n`
+  ]
+
+  const arrayCode = buildArray(arrName, items)
+  const shift = shiftFn(shiftFnN, arrName, loopVar)
+  const iife = `eval(${arrName}[${baseIdx}]+${JSON.stringify(mainFnN)}+${arrName}[${baseIdx+1}]+${JSON.stringify(b64VarN)}+${arrName}[${baseIdx+2}]+${arrName}[${baseIdx+3}]+${arrName}[${baseIdx+4}]+${arrName}[${baseIdx+5}]+${JSON.stringify(mainFnN)}+${arrName}[${baseIdx+6}])`
+
+  return `var ${extraVars};\n${shift}\n${arrayCode}\n${iife}`
 }
 
-// ─── custom-style  (caller-supplied function name, kanji chaos) ──────────────
 
+// ─────────────────────────────────────────────────────────────────────────────
+// STYLE: custom (enc-custom-style)
+// Identifiers: ${NameCustom}_XXXX pattern (caller supplies name prefix)
+// ─────────────────────────────────────────────────────────────────────────────
 function customStyle(code, name) {
-  const names = ["改造", "極限", "混乱", "破壊", "地獄", "暗黒", "虚無"]
-  const pick = () =>
-    names[Math.floor(Math.random() * names.length)] +
-    ["ツ", "々", "ฬ"][Math.floor(Math.random() * 3)] +
-    Math.floor(Math.random() * 99999)
-
-  const arrName = pick()
-  const fnShift = pick()
-  const varB64  = pick()
-  const loopVar = pick()
-
   const safeName = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name) ? name : "CustomLoader"
+  const mkId = (suffix) => `\${${safeName}}_${suffix || randId(4)}`
 
-  const strings = [
-    "push", "shift", "from", "base64", "toString",
-    ...Array.from({ length: 50 }, () => randomHex(4)),
-  ]
+  // Use literal $ notation the way enc-custom-style does
+  const arrName  = `${safeName}_${randId(4)}`
+  const shiftFnN = `${safeName}_${randId(4)}`
+  const loopVar  = `${safeName}_${randId(4)}`
+  const mainFnN  = `${safeName}_${randId(4)}`
+  const b64VarN  = `${safeName}_${randId(4)}`
 
-  const arrayCode = buildConstArray(arrName, strings)
   const b64 = Buffer.from(code).toString("base64")
 
-  return `function ${fnShift}(${fnShift},${arrName}){for(var ${loopVar}=0;${loopVar}<${arrName};${loopVar}++){${fnShift}["${escStr("push")}"](${fnShift}["${escStr("shift")}"]())}return ${fnShift}}
-${arrayCode}
-${chaosVars(1200, Array.from({ length: 35 }, pick))}
-;(function(){
-function ${safeName}(){
-const ${varB64}="${b64}";
-return Buffer["${escStr("from")}"](${varB64},"${escStr("base64")}")["${escStr("toString")}"]();
-}
-eval(${safeName}());
-})();`
+  const baseIdx = 10
+  const items = [
+    null, 0, 1, 2, 4, 8, 16, 32, 64, 128,
+    `\n(function(){\n\nfunction `,
+    `(){\n\nconst `,
+    `="`,
+    b64,
+    `"\n\nreturn Buffer\n.from(\n`,
+    `,\n"base64"\n)\n.toString()\n\n}\n\neval(\n`,
+    `()\n)\n\n})()\n`
+  ]
+
+  const arrayCode = buildArray(arrName, items)
+  const shift = shiftFn(shiftFnN, arrName, loopVar)
+  const iife = `eval(${arrName}[${baseIdx}]+${JSON.stringify(mainFnN)}+${arrName}[${baseIdx+1}]+${JSON.stringify(b64VarN)}+${arrName}[${baseIdx+2}]+${arrName}[${baseIdx+3}]+${arrName}[${baseIdx+4}]+${arrName}[${baseIdx+5}]+${JSON.stringify(mainFnN)}+${arrName}[${baseIdx+6}])`
+
+  return `${shift}\n${arrayCode}\n${iife}`
 }
 
-// ─── time-lock style  (expires after N days, uses const-array pattern) ────────
 
+// ─────────────────────────────────────────────────────────────────────────────
+// STYLE: timeLock — same pattern but with expiry guard in const array
+// ─────────────────────────────────────────────────────────────────────────────
 function timeLockStyle(code, days) {
+  const arrName  = zwInject(randId(8), 0.4)
+  const shiftFnN = zwInject(randId(8), 0.4)
+  const loopVar  = zwInject(randId(8), 0.3)
+  const mainFnN  = zwInject(randId(8), 0.4)
+  const b64VarN  = zwInject(randId(8), 0.4)
+
   const expired = Date.now() + Number(days) * 86400000
   const b64 = Buffer.from(code).toString("base64")
 
-  const names = ["時限", "消滅", "期限", "終焉"]
-  const pick = () =>
-    names[Math.floor(Math.random() * names.length)] +
-    Math.floor(Math.random() * 99999)
-
-  const fnMain = pick()
-  const varB64 = pick()
-
-  const strings = ["from", "base64", "toString", "exit", "log"]
-  const arrName = pick()
-  const arrayCode = buildConstArray(arrName, strings)
-
-  return `${arrayCode}
-;(function(){
-if(Date["${escStr("now")}"]()>${expired}){
-console["${escStr("log")}"]("${escStr("Script Expired")}");
-process["${escStr("exit")}"]();
-}
-function ${fnMain}(){
-const ${varB64}="${b64}";
-return Buffer["${escStr("from")}"](${varB64},"${escStr("base64")}")["${escStr("toString")}"]();
-}
-eval(${fnMain}());
-})();`
-}
-
-// ─── nebula-style  (space kanji names, massive chaos 2500) ────────────────────
-
-function nebulaStyle(code) {
-  const names = ["星雲", "宇宙", "銀河", "闇", "ブラック", "無限", "ゼロ"]
-  const pick = () =>
-    names[Math.floor(Math.random() * names.length)] +
-    ["ツ", "々", "ฬ", "刃"][Math.floor(Math.random() * 4)] +
-    Math.floor(Math.random() * 99999)
-
-  const arrName = pick()
-  const fnShift = pick()
-  const fnMain  = pick()
-  const varB64  = pick()
-
-  const strings = [
-    "push", "shift", "from", "base64", "toString",
-    ...Array.from({ length: 60 }, () => randomHex(4)),
+  const baseIdx = 10
+  const items = [
+    null, 0, 1, 2, 4, 8, 16, 32, 64, 128,
+    `\n(function(){\nif(Date.now()>${expired}){console.log("Script Expired");process.exit()}\nfunction `,
+    `(){\n\nconst `,
+    `="`,
+    b64,
+    `"\n\nreturn Buffer\n.from(\n`,
+    `,\n"base64"\n)\n.toString()\n\n}\n\neval(\n`,
+    `()\n)\n\n})()\n`
   ]
 
-  const arrayCode = buildConstArray(arrName, strings)
+  const arrayCode = buildArray(arrName, items)
+  const shift = shiftFn(shiftFnN, arrName, loopVar)
+  const iife = `eval(${arrName}[${baseIdx}]+${JSON.stringify(mainFnN)}+${arrName}[${baseIdx+1}]+${JSON.stringify(b64VarN)}+${arrName}[${baseIdx+2}]+${arrName}[${baseIdx+3}]+${arrName}[${baseIdx+4}]+${arrName}[${baseIdx+5}]+${JSON.stringify(mainFnN)}+${arrName}[${baseIdx+6}])`
+
+  return `${shift}\n${arrayCode}\n${iife}`
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STYLE: nebula (bonus — same structure, kanji space theme, largest array)
+// ─────────────────────────────────────────────────────────────────────────────
+function nebulaStyle(code) {
+  const kanji2 = "星雲宇宙銀河闇ブラック無限ゼロ超新星中性子"
+  const pick = (n=6) => Array.from({length:n}, ()=>kanji2[Math.floor(Math.random()*kanji2.length)]).join("")
+
+  const arrName  = pick()
+  const shiftFnN = pick()
+  const loopVar  = pick(4)
+  const mainFnN  = pick()
+  const b64VarN  = pick()
+
   const b64 = Buffer.from(code).toString("base64")
 
-  return `function ${fnShift}(${fnShift},${arrName}){for(var ${varB64}=0;${varB64}<${arrName};${varB64}++){${fnShift}["${escStr("push")}"](${fnShift}["${escStr("shift")}"]())}return ${fnShift}}
-${arrayCode}
-${chaosVars(2500, Array.from({ length: 50 }, pick))}
-;(function(){
-function ${fnMain}(){
-const ${varB64}="${b64}";
-return Buffer["${escStr("from")}"](${varB64},"${escStr("base64")}")["${escStr("toString")}"]();
-}
-eval(${fnMain}());
-})();`
+  const baseIdx = 10
+  const items = [
+    null, 0, 1, 2, 4, 8, 16, 32, 64, 128,
+    `\n(function(){\n\nfunction `,
+    `(){\n\nconst `,
+    `="`,
+    b64,
+    `"\n\nreturn Buffer\n.from(\n`,
+    `,\n"base64"\n)\n.toString()\n\n}\n\neval(\n`,
+    `()\n)\n\n})()\n`
+  ]
+
+  const arrayCode = buildArray(arrName, items)
+  const shift = shiftFn(shiftFnN, arrName, loopVar)
+  const iife = `eval(${arrName}[${baseIdx}]+${JSON.stringify(mainFnN)}+${arrName}[${baseIdx+1}]+${JSON.stringify(b64VarN)}+${arrName}[${baseIdx+2}]+${arrName}[${baseIdx+3}]+${arrName}[${baseIdx+4}]+${arrName}[${baseIdx+5}]+${JSON.stringify(mainFnN)}+${arrName}[${baseIdx+6}])`
+
+  return `${shift}\n${arrayCode}\n${iife}`
 }
 
-// ─── invis-style  (unescape/escape double-encoding layer) ─────────────────────
 
+// ─────────────────────────────────────────────────────────────────────────────
+// STYLE: invis / rosemary — same structural pattern, different themes
+// ─────────────────────────────────────────────────────────────────────────────
 function invisStyle(code) {
-  const uni = escape(Buffer.from(code).toString("base64"))
-  const unescEsc   = escStr("unescape")
-  const bufFrom    = escStr("from")
-  const b64Str     = escStr("base64")
-  const toStringE  = escStr("toString")
-  return `eval(Buffer["${bufFrom}"](${unescEsc}("${uni}"),"${b64Str}")["${toStringE}"]())`
+  return balancedStyle(code) // invis follows balanced structure
 }
-
-// ─── rosemary-style  (rose/night kanji names, 800 chaos vars) ────────────────
 
 function rosemaryStyle(code) {
-  const names = ["薔薇", "深夜", "死", "夢", "幽", "霧", "影", "魂"]
-  const pick = () =>
-    names[Math.floor(Math.random() * names.length)] +
-    ["ツ", "々", "ฬ", "刃"][Math.floor(Math.random() * 4)] +
-    Math.floor(Math.random() * 99999)
+  const kanji3 = "薔薇深夜死夢幽霧影魂"
+  const pick = (n=5) => Array.from({length:n}, ()=>kanji3[Math.floor(Math.random()*kanji3.length)]).join("")
 
-  const arrName = pick()
-  const fnShift = pick()
-  const fnMain  = pick()
-  const varB64  = pick()
+  const arrName  = pick()
+  const shiftFnN = pick()
+  const loopVar  = pick(3)
+  const mainFnN  = pick()
+  const b64VarN  = pick()
 
-  const strings = [
-    "push", "shift", "from", "base64", "toString",
-    ...Array.from({ length: 45 }, () => randomHex(4)),
-  ]
-
-  const arrayCode = buildConstArray(arrName, strings)
   const b64 = Buffer.from(code).toString("base64")
 
-  return `function ${fnShift}(${fnShift},${arrName}){for(var ${varB64}=0;${varB64}<${arrName};${varB64}++){${fnShift}["${escStr("push")}"](${fnShift}["${escStr("shift")}"]())}return ${fnShift}}
-${arrayCode}
-${chaosVars(800, Array.from({ length: 25 }, pick))}
-;(function(){
-function ${fnMain}(){
-const ${varB64}="${b64}";
-return Buffer["${escStr("from")}"](${varB64},"${escStr("base64")}")["${escStr("toString")}"]();
-}
-eval(${fnMain}());
-})();`
+  const baseIdx = 10
+  const items = [
+    null, 0, 1, 2, 4, 8, 16, 32, 64, 128,
+    `\n(function(){\n\nfunction `,
+    `(){\n\nconst `,
+    `="`,
+    b64,
+    `"\n\nreturn Buffer\n.from(\n`,
+    `,\n"base64"\n)\n.toString()\n\n}\n\neval(\n`,
+    `()\n)\n\n})()\n`
+  ]
+
+  const arrayCode = buildArray(arrName, items)
+  const shift = shiftFn(shiftFnN, arrName, loopVar)
+  const iife = `eval(${arrName}[${baseIdx}]+${JSON.stringify(mainFnN)}+${arrName}[${baseIdx+1}]+${JSON.stringify(b64VarN)}+${arrName}[${baseIdx+2}]+${arrName}[${baseIdx+3}]+${arrName}[${baseIdx+4}]+${arrName}[${baseIdx+5}]+${JSON.stringify(mainFnN)}+${arrName}[${baseIdx+6}])`
+
+  return `${shift}\n${arrayCode}\n${iife}`
 }
 
+
 module.exports = {
+  balancedStyle,
   japanStyle,
   arabStyle,
-  balancedStyle,
   hardcoreStyle,
   phantomStyle,
   artilleryStyle,
@@ -1970,6 +2121,7 @@ module.exports = {
   invisStyle,
   rosemaryStyle,
 }
+
 
 
 
