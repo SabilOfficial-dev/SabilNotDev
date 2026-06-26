@@ -1401,7 +1401,7 @@ bot.action('enc_menu_v2', async (ctx) => {
 bot.action('tools_menu', async (ctx) => {
     const messageId = ctx.callbackQuery.message.message_id;
     await ctx.answerCbQuery();
-    await EncV2(ctx, messageId);
+    await showMenu2(ctx, messageId);
 });
 
 bot.action("owner_menu", async (ctx) => {
