@@ -1966,7 +1966,7 @@ function varStyle(code) {
 // Identifiers: ${NameCustom}_XXXX pattern (caller supplies name prefix)
 // ─────────────────────────────────────────────────────────────────────────────
 function customStyle(code, name) {
-  const safeName = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name) ? name : "CustomLoader"
+  const safeName = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name) ? name : `${name}`
   const mkId = (suffix) => `\${${safeName}}_${suffix || randId(4)}`
 
   // Use literal $ notation the way enc-custom-style does
