@@ -533,34 +533,58 @@ async function downloadWebsite(url, outputDir, zipPath) {
 
 // ==================== PROSES DOWNLOAD ====================
 async function processDownload(ctx, url) {
-    const waitMsg = await ctx.reply('🌐 Mengunduh website... mohon tunggu.\n\n⏳ Proses ini bisa memakan waktu 10-60 detik tergantung ukuran website.', { parse_mode: 'HTML' });
-    
-    const tempDir = path.join(__dirname, `temp_${Date.now()}`);
-    const zipPath = path.join(__dirname, `website_${Date.now()}.zip`);
-    
+    const ts      = Date.now()
+    const tempDir = path.join(__dirname, `temp_${ts}`)
+    const zipPath = path.join(__dirname, `website_${ts}.zip`)
+
+    const waitMsg = await ctx.reply(
+        `🌐 <b>Mengunduh website...</b>\n\n` +
+        `⏳ Mohon tunggu, proses ini bisa memakan waktu 10–60 detik.`,
+        { parse_mode: 'HTML' }
+    )
+
+    const cleanup = async () => {
+        await fs.remove(tempDir).catch(() => {})
+        await fs.remove(zipPath).catch(() => {})
+    }
+
+    const deleteWait = () =>
+        ctx.telegram.deleteMessage(waitMsg.chat.id, waitMsg.message_id).catch(() => {})
+
     try {
-        await downloadWebsite(url, tempDir, zipPath);
-        
-        await ctx.telegram.deleteMessage(waitMsg.chat.id, waitMsg.message_id).catch(() => {});
-        
-        const stats = fs.statSync(zipPath);
-        const fileSizeKB = (stats.size / 1024).toFixed(2);
-        
+        await downloadWebsite(url, tempDir, zipPath)
+
+        const zipExists = await fs.pathExists(zipPath)
+        if (!zipExists) throw new Error('File ZIP tidak terbentuk setelah proses download.')
+
+        const stats      = await fs.stat(zipPath)
+        const fileSizeKB = (stats.size / 1024).toFixed(2)
+        const fileName   = `source_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.zip`
+
+        await deleteWait()
+
         await ctx.replyWithDocument(
-            { source: zipPath, filename: `source_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.zip` },
-            { caption: `✅ *Berhasil mengunduh website!*\n\n🌐 URL: ${url}\n📦 Ukuran: ${fileSizeKB} KB\n📁 File ZIP berisi HTML, CSS, JS, dan aset.`, parse_mode: 'Markdown' }
-        );
-        
-        await fs.remove(tempDir).catch(() => {});
-        await fs.remove(zipPath).catch(() => {});
-        
+            { source: zipPath, filename: fileName },
+            {
+                caption:
+                    `<blockquote><b>Get Source Selesai</b></blockquote>\n` +
+                    `🌐 URL : <code>${url}</code>\n` +
+                    `📦 Ukuran : ${fileSizeKB} KB\n` +
+                    `📁 Isi : HTML, CSS, JS, dan aset`,
+                parse_mode: 'HTML'
+            }
+        )
+
     } catch (err) {
-        console.error('Download website error:', err);
-        await ctx.telegram.deleteMessage(waitMsg.chat.id, waitMsg.message_id).catch(() => {});
-        await ctx.reply(`❌ *Gagal mengunduh website!*\n\nError: ${err.message}`, { parse_mode: 'Markdown' });
-        
-        await fs.remove(tempDir).catch(() => {});
-        await fs.remove(zipPath).catch(() => {});
+        console.error('[processDownload] error:', err)
+        await deleteWait()
+        await ctx.reply(
+            `❌ <b>Gagal mengunduh website!</b>\n\n` +
+            `<code>${err.message}</code>`,
+            { parse_mode: 'HTML' }
+        )
+    } finally {
+        await cleanup()
     }
 }
 
@@ -949,7 +973,7 @@ async function sendEncryptProgress(ctx, waitMsg, modeName) {
         const filled = Math.round((step.percent / 100) * barLength);
         const bar = '▓'.repeat(filled) + '░'.repeat(barLength - filled);
         await ctx.telegram.editMessageText(waitMsg.chat.id, waitMsg.message_id, undefined, `\`\`\`js
-✅ Encrypt Berjalan\n ${step.text}\n ${bar} ${step.percent}%\`\`\``, { parse_mode: 'Markdown' });
+   ✅ Encrypt Berjalan\n ${step.text}\n ${bar} ${step.percent}%\`\`\``, { parse_mode: 'Markdown' });
         await new Promise(resolve => setTimeout(resolve, step.delay));
     }
 }
@@ -1087,8 +1111,8 @@ async function processObfuscate(
                 caption:
                     `<blockquote><b>Proses Obf Selesai</b></blockquote>\n` +
                     `File : ${outputFilename}\n` +
-                    `Size File : ${fileSizeMB} MB\n` +
-                    `Mode : ${modeName}`,
+                    `Ukuran : ${fileSizeMB} MB\n` +
+                    `Mode Enc : ${modeName}`,
                 parse_mode: "HTML"
             }
         )
@@ -1331,7 +1355,7 @@ async function EncV2(ctx, messageId = null) {
     const keyboard = getEncV2Keyboard();
     const caption = `\`\`\`js
 ━━━ ⚙️ 𝖤𝗇𝖼𝗋𝗒𝗉𝗍 𝖬𝖾𝗇𝗎 𝖵𝟤 ━━━
- ♱ /custom 𝖢𝗎𝗌𝗍𝗈𝗆 𝖭𝖺𝗆𝖾
+ ♱ /enccustom 𝖢𝗎𝗌𝗍𝗈𝗆 𝖭𝖺𝗆𝖾
  ♱ /invisenc 𝖨𝗇𝗏𝗂𝗌𝖻𝗅𝖾 𝖧𝖺𝗋𝖽
  ♱ /japanenc 𝖩𝖺𝗉𝖺𝗇𝖾𝗌𝖾 𝖲𝗍𝗒𝗅𝖾
  ♱ /encarab 𝖠𝗋𝖺𝖻 𝖲𝗍𝗒𝗅𝖾
@@ -1342,7 +1366,7 @@ async function EncV2(ctx, messageId = null) {
  ♱ /invishtml Encrypt Hmtl
 
 ━━━ 🔍 Cara Penggunaan ━━━
- ♱ /custom 果Prime皮Sabil出
+ ♱ /enccustom 果Prime皮Sabil出
  ♱ Jangan ada spasi dalam text\`\`\`
 `;
     const thumb = await getThumbnailBuffer();
@@ -1971,7 +1995,7 @@ function varStyle(code) {
 // Identifiers: ${NameCustom}_XXXX pattern (caller supplies name prefix)
 // ─────────────────────────────────────────────────────────────────────────────
 function customStyle(code, name) {
-  const safeName = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name) ? name : `${name}`
+  const safeName = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name) ? name : `$(name}`
   const mkId = (suffix) => `\${${safeName}}_${suffix || randId(4)}`
 
   // Use literal $ notation the way enc-custom-style does
@@ -2171,7 +2195,9 @@ bot.command('nebula', (ctx) => processObfuscate(ctx, nebulaStyle, 'Nebula'))
 bot.command('var', (ctx) => processObfuscate(ctx, varStyle, 'Var'))
 
 // /enctime
-bot.command('enctime', async(ctx)=>{
+bot.command(
+'enctime',
+async(ctx)=>{
 
 const days =
 ctx.message.text
@@ -2194,8 +2220,10 @@ ctx,
 }
 )
 
-// /custom
-bot.command('custom', async(ctx)=>{
+// /enccustom
+bot.command(
+'enccustom',
+async(ctx)=>{
 
 const text =
 ctx.message.text
@@ -2206,7 +2234,7 @@ ctx.message.text
 if(!text){
 
 return ctx.reply(
-'❌ Example : /custom 克Optimus罗Prime塔',
+'❌ Example : /enccustom SabilOfficial'
 )
 
 }
@@ -2214,7 +2242,7 @@ return ctx.reply(
 await processObfuscate(
 ctx,
 (code)=>customStyle(code, text),
-'custom'
+'EncCustom'
 )
 
 }
@@ -2340,44 +2368,74 @@ ctx.reply(String(e))
 
 // ==================== GETSOURCE ====================
 
+const URL_REGEX = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&/=]*)/
+
 bot.command('getsource', async (ctx) => {
-    const userId = ctx.from.id;
-    const args = ctx.message.text.split(/\s+/);
-    const url = args[1];
-    
-    if (url && url.match(/^https?:\/\//)) {
-        await processDownload(ctx, url);
-    } else {
-        waitingForUrl.set(userId, true);
-        await ctx.reply(
-            `🌐 *GET SOURCE WEBSITE*\n\n` +
-            `Kirimkan URL website yang ingin didownload source-nya.\n\n` +
-            `<b>Contoh:</b>\n<code>https://example.com</code>\n\n` +
-            `Klik tombol di bawah untuk membatalkan.`,
-            { parse_mode: 'HTML', reply_markup: cancelButton }
-        );
+    const userId = ctx.from.id
+
+    if (!isUserHasAccess(userId) && userId !== config.OWNER_ID) {
+        return ctx.reply('❌ Akses ditolak.')
     }
-});
+
+    const args = ctx.message.text.split(/\s+/)
+    const url = args[1]
+
+    // URL langsung disertakan di command
+    if (url) {
+        if (!URL_REGEX.test(url)) {
+            return ctx.reply(
+                `❌ <b>URL tidak valid!</b>\n\n` +
+                `Pastikan URL diawali <code>http://</code> atau <code>https://</code>\n\n` +
+                `<b>Contoh:</b>\n<code>/getsource https://example.com</code>`,
+                { parse_mode: 'HTML' }
+            )
+        }
+        return processDownload(ctx, url)
+    }
+
+    // Tidak ada URL — minta kirim URL lewat pesan
+    waitingForUrl.set(userId, {
+        type: 'getsource',
+        expires: Date.now() + 2 * 60 * 1000   // timeout 2 menit
+    })
+
+    return ctx.reply(
+        `🌐 <b>GET SOURCE WEBSITE</b>\n\n` +
+        `Kirimkan URL website yang ingin didownload source-nya.\n\n` +
+        `<b>Contoh:</b>\n<code>https://example.com</code>\n\n` +
+        `<i>⏳ Sesi aktif selama 2 menit.</i>`,
+        { parse_mode: 'HTML' }
+    )
+})
 
 // ==================== HANDLER UNTUK MENERIMA URL ====================
 bot.on('text', async (ctx, next) => {
-    const userId = ctx.from.id;
-    
-    if (waitingForUrl.get(userId)) {
-        waitingForUrl.delete(userId);
-        const url = ctx.message.text.trim();
-        
-        if (!url.match(/^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/)) {
-            await ctx.reply('❌ URL tidak valid. Pastikan URL diawali dengan http:// atau https://', { parse_mode: 'HTML', reply_markup: cancelButton });
-            waitingForUrl.set(userId, true);
-            return;
-        }
-        
-        await processDownload(ctx, url);
-        return;
+    const userId = ctx.from.id
+    const session = waitingForUrl.get(userId)
+
+    if (!session || session.type !== 'getsource') return next()
+
+    // Cek timeout sesi
+    if (Date.now() > session.expires) {
+        waitingForUrl.delete(userId)
+        return next()
     }
-    return next();
-});
+
+    waitingForUrl.delete(userId)
+
+    const url = ctx.message.text.trim()
+
+    if (!URL_REGEX.test(url)) {
+        return ctx.reply(
+            `❌ <b>URL tidak valid!</b>\n\n` +
+            `Pastikan URL diawali <code>http://</code> atau <code>https://</code>\n\n` +
+            `Coba lagi dengan <code>/getsource https://example.com</code>`,
+            { parse_mode: 'HTML' }
+        )
+    }
+
+    return processDownload(ctx, url)
+})
 // ==================== CEKFUNC MULTI-BAHASA ====================
 bot.command("cekfunc", async (ctx) => {
   try {
