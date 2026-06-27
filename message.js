@@ -2163,7 +2163,7 @@ ctx.message.text
 if(!text){
 
 return ctx.reply(
-'❌ Example : /enccustom SabilOfficial'
+'❌ Example : /custom SabilOfficial'
 )
 
 }
@@ -2171,7 +2171,7 @@ return ctx.reply(
 await processObfuscate(
 ctx,
 (code)=>customStyle(code, text),
-'EncCustom'
+'Custom'
 )
 
 }
@@ -2372,7 +2372,7 @@ bot.action(/^enc_pick:(v[123]):(\d+):(\d+)$/, async (ctx) => {
         } else {
             await ctx.editMessageText(promptCaption, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [] } }).catch(() => {})
         }
-        ses.pendingParam = { type: 'enccustom', picked }
+        ses.pendingParam = { type: 'custom', picked }
         encSessions.set(userId, ses)
         return
     }
