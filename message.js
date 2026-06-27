@@ -962,18 +962,20 @@ function startDisco(ctx, messageId, getKeyboardFunc) {
 // wik wok the tolk
 async function sendEncryptProgress(ctx, waitMsg, modeName) {
     const steps = [
-        { percent: 20, text: `  ⚙️ Mengunduh file (mode: ${modeName})`, delay: 600 },
-        { percent: 40, text: `  ⚙️ PROSES ENCRYPT (${modeName})`, delay: 800 },
-        { percent: 70, text: `  ⚙️ Encrypting dengan algoritma ${modeName}...`, delay: 5000 },
-        { percent: 80, text: `  ⚙️ Penyelesaian Encrypt... Cukup Lama`, delay: 4000 },
-        { percent: 100, text: `  ✅ File berhasil diencrypt! (${modeName})`, delay: 500 }
+        { percent: 20, text: `𝗆𝖾𝗇𝗀𝗎𝗇𝖽𝗎𝗁 𝖿𝗂𝗅𝖾𝗌`, delay: 600 },
+        { percent: 40, text: `𝗉𝗋𝗈𝗌𝖾𝗌 𝖾𝗇𝖼𝗋𝗒𝗉𝗍`, delay: 800 },
+        { percent: 70, text: `𝖾𝗇𝖼𝗋𝗒𝗉𝗍 algoritma ${modeName}`, delay: 5000 },
+        { percent: 80, text: `𝗉𝖾𝗇𝗒𝖾𝗅𝖾𝗌𝖺𝗂𝖺𝗇 𝖾𝗇𝖼𝗋𝗒𝗉𝗍`, delay: 4000 },
+        { percent: 100, text: `𝖿𝗂𝗅𝖾 𝗌𝖾𝗅𝖾𝗌𝖺𝗂 𝖽𝗂 𝖾𝗇𝖼𝗋ypt`, delay: 500 }
     ];
     for (const step of steps) {
-        const barLength = 11;
-        const filled = Math.round((step.percent / 100) * barLength);
-        const bar = '▓'.repeat(filled) + '░'.repeat(barLength - filled);
-        await ctx.telegram.editMessageText(waitMsg.chat.id, waitMsg.message_id, undefined, `\`\`\`js
-   ✅ Encrypt Berjalan\n ${step.text}\n ${bar} ${step.percent}%\`\`\``, { parse_mode: 'Markdown' });
+        const filled = Math.round((step.percent / 100));
+        await ctx.telegram.editMessageText(waitMsg.chat.id, waitMsg.message_id, undefined, `
+<blockquote><b>𝗉𝗋𝗈𝗀𝗋𝖾𝗌 𝖾𝗇𝖼𝗋𝗒𝗉𝗍</b></blockquote>
+In Steps : ${step.text}
+Type : ${modeName}
+📊Persentase : ${step.percent}%
+`,{ parse_mode: 'HTML' });
         await new Promise(resolve => setTimeout(resolve, step.delay));
     }
 }
@@ -1071,15 +1073,16 @@ async function processObfuscate(
         `${String(modeName)
             .replace(/ /g, "_")
             .toLowerCase()
-        }-encrypt-${originalBaseName}.js`
+        }-encrypted-${originalBaseName}.js`
 
     const waitMsg =
         await ctx.reply(
-            `\`\`\`js
-▓▓░░░░░░░░░ 10%
-⚙️ Memulai Obfuscation: ${modeName}\`\`\``,
+            `
+<blockquote><b>Memulai Enc</b></blockquote>
+<blockquote>📊Persentase</blockquote>10%
+<blockquote>Type Enc</blockquote>${modeName}`,
             {
-                parse_mode: "Markdown"
+                parse_mode: "HTML"
             }
         )
 
@@ -1109,10 +1112,10 @@ async function processObfuscate(
             },
             {
                 caption:
-                    `<blockquote><b>Proses Obf Selesai</b></blockquote>\n` +
-                    `File : ${outputFilename}\n` +
-                    `Ukuran : ${fileSizeMB} MB\n` +
-                    `Mode Enc : ${modeName}`,
+                    `<blockquote><b>𝖤𝗇𝖼𝗋𝗒𝗉𝗍 𝖲𝖾𝗅𝖾𝗌𝖺𝗂</b></blockquote>\n` +
+                    `𝖥𝗂𝗅𝖾𝗌 : ${outputFilename}\n` +
+                    `𝖲𝗂𝗓𝖾 : ${fileSizeMB} MB\n` +
+                    `𝖳𝗒𝗉𝖾 : ${modeName}`,
                 parse_mode: "HTML"
             }
         )
