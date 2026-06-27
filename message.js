@@ -962,8 +962,8 @@ function startDisco(ctx, messageId, getKeyboardFunc) {
 // wik wok the tolk
 async function sendEncryptProgress(ctx, waitMsg, modeName) {
     const steps = [
-        { percent: 20, text: `𝗆𝖾𝗇𝗀𝗎𝗇𝖽𝗎𝗁 𝖿𝗂𝗅𝖾𝗌`, delay: 600 },
-        { percent: 40, text: `𝗉𝗋𝗈𝗌𝖾𝗌 𝖾𝗇𝖼𝗋𝗒𝗉𝗍`, delay: 800 },
+        { percent: 20, text: `𝗆𝖾𝗇𝗀𝗎𝗇𝖽𝗎𝗁 𝖿𝗂𝗅𝖾𝗌`, delay: 1000 },
+        { percent: 40, text: `𝗉𝗋𝗈𝗌𝖾𝗌 𝖾𝗇𝖼𝗋𝗒𝗉𝗍`, delay: 1000 },
         { percent: 70, text: `𝖾𝗇𝖼𝗋𝗒𝗉𝗍 algoritma ${modeName}`, delay: 5000 },
         { percent: 80, text: `𝗉𝖾𝗇𝗒𝖾𝗅𝖾𝗌𝖺𝗂𝖺𝗇 𝖾𝗇𝖼𝗋𝗒𝗉𝗍`, delay: 4000 },
         { percent: 100, text: `𝖿𝗂𝗅𝖾 𝗌𝖾𝗅𝖾𝗌𝖺𝗂 𝖽𝗂 𝖾𝗇𝖼𝗋ypt`, delay: 500 }
@@ -1079,8 +1079,8 @@ async function processObfuscate(
         await ctx.reply(
             `
 <blockquote><b>Memulai Enc</b></blockquote>
-<blockquote>📊Persentase</blockquote>10%
-<blockquote>Type Enc</blockquote>${modeName}`,
+📊Persentase : 10%
+Type : ${modeName}`,
             {
                 parse_mode: "HTML"
             }
