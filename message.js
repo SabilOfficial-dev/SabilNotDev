@@ -2251,6 +2251,279 @@ ctx,
 }
 )
 
+// ==================== ENC MENU FLOW ====================
+
+// Session store: userId -> { fileId, fileName, baseName, fileType, chatId, pollMsgId, menuMsgId }
+const encSessions = new Map()
+
+// Definisi semua type enc
+const ENC_V1 = [
+    { label: '🎯 Artillery',   fn: 'artilleryStyle', name: 'Artillery'  },
+    { label: '💀 Hardcore',    fn: 'hardcoreStyle',  name: 'Hardcore'   },
+    { label: '👻 Phantom',     fn: 'phantomStyle',   name: 'Phantom'    },
+    { label: '⚖️ Balanced',    fn: 'balancedStyle',  name: 'Balanced'   },
+    { label: '🔄 Reversed',    fn: 'reversedStyle',  name: 'Reversed'   },
+    { label: '🌹 Rosemary',    fn: 'rosemaryStyle',  name: 'Rosemary'   },
+    { label: '🇯🇵 Japan',      fn: 'japanStyle',     name: 'Japan'      },
+    { label: '🌌 Nebula',      fn: 'nebulaStyle',    name: 'Nebula'     },
+    { label: '📦 Var',         fn: 'varStyle',       name: 'Var'        },
+    { label: '⚔️ Siu',         fn: 'siuStyle',       name: 'Siu'        },
+]
+
+const ENC_V2 = [
+    { label: '🌫️ Invis',       fn: 'invisStyle',     name: 'Invis'      },
+    { label: '🇸🇦 Arab',       fn: 'arabStyle',      name: 'Arab'       },
+    { label: '🌸 JapanEnc',    fn: 'japanStyle',     name: 'JapanEnc'   },
+    { label: '🔱 Siu CR7',     fn: 'siuStyle',       name: 'SiuCR7'     },
+    { label: '⚡ Phantom V2',  fn: 'phantomStyle',   name: 'PhantomV2'  },
+    { label: '🔥 Hard V2',     fn: 'hardcoreStyle',  name: 'HardV2'     },
+    { label: '🌀 Reversed V2', fn: 'reversedStyle',  name: 'ReversedV2' },
+    { label: '🌺 Rosemary V2', fn: 'rosemaryStyle',  name: 'RosemaryV2' },
+    { label: '🎭 Balanced V2', fn: 'balancedStyle',  name: 'BalancedV2' },
+    { label: '💫 Nebula V2',   fn: 'nebulaStyle',    name: 'NebulaV2'   },
+]
+
+const ENC_V3 = [
+    { label: '🫥 InvisHTML',   fn: 'invishtml',      name: 'InvisHTML'  },
+    { label: '💎 HardHTML',    fn: 'hardhtml',       name: 'HardHTML'   },
+]
+
+// fn string -> actual function
+const ENC_FN_MAP = {
+    artilleryStyle, hardcoreStyle, phantomStyle, balancedStyle,
+    reversedStyle,  rosemaryStyle, japanStyle,   nebulaStyle,
+    varStyle,       siuStyle,      invisStyle,   arabStyle,
+}
+
+function buildEncMenu(version, userId) {
+    const list = version === 'v1' ? ENC_V1 : version === 'v2' ? ENC_V2 : ENC_V3
+    const rows = []
+    for (let i = 0; i < list.length; i += 2) {
+        const row = [
+            { text: list[i].label, callback_data: `enc_pick:${version}:${i}:${userId}` }
+        ]
+        if (list[i + 1]) {
+            row.push({ text: list[i + 1].label, callback_data: `enc_pick:${version}:${i+1}:${userId}` })
+        }
+        rows.push(row)
+    }
+    if (version === 'v1') {
+        rows.push([
+            { text: '❌ Batal',      callback_data: `enc_cancel:${userId}` },
+            { text: 'Berikutnya ▶', callback_data: `enc_nav:v2:${userId}`  },
+        ])
+    } else if (version === 'v2') {
+        rows.push([
+            { text: '◀ Kembali',    callback_data: `enc_nav:v1:${userId}` },
+            { text: 'Berikutnya ▶', callback_data: `enc_nav:v3:${userId}` },
+        ])
+    } else {
+        rows.push([
+            { text: '◀ Kembali',    callback_data: `enc_nav:v2:${userId}` },
+            { text: '❌ Batal',     callback_data: `enc_cancel:${userId}`  },
+        ])
+    }
+    return { inline_keyboard: rows }
+}
+
+function versionLabel(v) {
+    return v === 'v1' ? '— V1 —' : v === 'v2' ? '— V2 —' : '— V3 (HTML) —'
+}
+
+// /enc command
+bot.command('enc', async (ctx) => {
+    const userId = ctx.from.id
+
+    if (!isUserHasAccess(userId) && userId !== config.OWNER_ID) {
+        return ctx.reply('❌ Akses ditolak.')
+    }
+
+    const replied = ctx.message.reply_to_message
+    if (!replied || !replied.document) {
+        return ctx.reply('❌ Reply file <b>.js</b> atau <b>.html</b> lalu ketik /enc', { parse_mode: 'HTML' })
+    }
+
+    const doc    = replied.document
+    const isJs   = doc.file_name?.endsWith('.js')   || doc.mime_type === 'text/javascript'
+    const isHtml = doc.file_name?.endsWith('.html')  || doc.mime_type === 'text/html'
+
+    if (!isJs && !isHtml) {
+        return ctx.reply('❌ File harus <b>.js</b> atau <b>.html</b>', { parse_mode: 'HTML' })
+    }
+
+    encSessions.set(userId, {
+        fileId:   doc.file_id,
+        fileName: doc.file_name,
+        baseName: doc.file_name.replace(/\.[^/.]+$/, ''),
+        fileType: isJs ? 'js' : 'html',
+        chatId:   ctx.chat.id,
+    })
+
+    const pollMsg = await ctx.telegram.sendPoll(
+        ctx.chat.id,
+        'Lanjut Enc?',
+        ['✅ Lanjut', '❌ Back Menu'],
+        { is_anonymous: false, allows_multiple_answers: false }
+    )
+
+    const ses = encSessions.get(userId)
+    if (ses) { ses.pollMsgId = pollMsg.message_id; encSessions.set(userId, ses) }
+})
+
+// Handler poll answer
+bot.on('poll_answer', async (ctx) => {
+    const userId    = ctx.pollAnswer.user.id
+    const optionIds = ctx.pollAnswer.option_ids
+    const ses       = encSessions.get(userId)
+    if (!ses) return
+
+    if (ses.pollMsgId) {
+        await ctx.telegram.deleteMessage(ses.chatId, ses.pollMsgId).catch(() => {})
+    }
+
+    if (!optionIds.includes(0)) {
+        encSessions.delete(userId)
+        return ctx.telegram.sendMessage(ses.chatId, '❌ Dibatalkan.')
+    }
+
+    const thumb   = await getThumbnailBuffer()
+    const caption =
+        `<blockquote><b>🔐 Pilih Type Enc</b></blockquote>\n` +
+        `Pilih type untuk lanjut enc\n\n` +
+        `<b>${versionLabel('v1')}</b>`
+    const keyboard = buildEncMenu('v1', userId)
+
+    let sent
+    if (thumb) {
+        sent = await ctx.telegram.sendPhoto(ses.chatId, { source: thumb }, {
+            caption, parse_mode: 'HTML', reply_markup: keyboard
+        })
+    } else {
+        sent = await ctx.telegram.sendMessage(ses.chatId, caption, {
+            parse_mode: 'HTML', reply_markup: keyboard
+        })
+    }
+    ses.menuMsgId   = sent.message_id
+    ses.menuIsPhoto = !!thumb
+    encSessions.set(userId, ses)
+})
+
+// Navigasi antar versi
+bot.action(/^enc_nav:(v[123]):(\d+)$/, async (ctx) => {
+    await ctx.answerCbQuery()
+    const version = ctx.match[1]
+    const userId  = parseInt(ctx.match[2])
+    if (ctx.from.id !== userId) return ctx.answerCbQuery('Bukan sesi kamu.')
+
+    const ses = encSessions.get(userId)
+    if (!ses) return ctx.answerCbQuery('Sesi expired, ketik /enc lagi.')
+
+    const caption =
+        `<blockquote><b>🔐 Pilih Type Enc</b></blockquote>\n` +
+        `Pilih type untuk lanjut enc\n\n` +
+        `<b>${versionLabel(version)}</b>`
+    const keyboard = buildEncMenu(version, userId)
+
+    if (ses.menuIsPhoto) {
+        await ctx.editMessageCaption(caption, { parse_mode: 'HTML', reply_markup: keyboard }).catch(() => {})
+    } else {
+        await ctx.editMessageText(caption, { parse_mode: 'HTML', reply_markup: keyboard }).catch(() => {})
+    }
+})
+
+// User pilih type enc
+bot.action(/^enc_pick:(v[123]):(\d+):(\d+)$/, async (ctx) => {
+    await ctx.answerCbQuery('⏳ Memproses...')
+    const version = ctx.match[1]
+    const idx     = parseInt(ctx.match[2])
+    const userId  = parseInt(ctx.match[3])
+    if (ctx.from.id !== userId) return
+
+    const ses = encSessions.get(userId)
+    if (!ses) return ctx.telegram.sendMessage(ctx.chat.id, '❌ Sesi expired, ketik /enc lagi.')
+
+    encSessions.delete(userId)
+
+    if (ses.menuMsgId) {
+        await ctx.telegram.deleteMessage(ses.chatId, ses.menuMsgId).catch(() => {})
+    }
+
+    const list   = version === 'v1' ? ENC_V1 : version === 'v2' ? ENC_V2 : ENC_V3
+    const picked = list[idx]
+    if (!picked) return ctx.telegram.sendMessage(ses.chatId, '❌ Type tidak valid.')
+
+    const waitMsg = await ctx.telegram.sendMessage(
+        ses.chatId,
+        `<blockquote><b>Memulai Enc</b></blockquote>\n📊 Persentase : 10%\nType : ${picked.name}`,
+        { parse_mode: 'HTML' }
+    )
+
+    try {
+        const file     = await ctx.telegram.getFile(ses.fileId)
+        const link     = `https://api.telegram.org/file/bot${config.BOT_TOKEN}/${file.file_path}`
+        const response = await axios.get(link, { responseType: 'text' })
+        const code     = response.data
+
+        let obfuscated
+        const outputExt = ses.fileType === 'html' ? 'html' : 'js'
+
+        if (version === 'v3') {
+            if (picked.fn === 'invishtml') {
+                const uni = escape(Buffer.from(code).toString('base64'))
+                obfuscated = `<script>\neval(\natob(\nunescape(\n"${uni}"\n)\n)\n)\n</script>`
+            } else {
+                obfuscated = `<script>\n${hardcoreStyle(code)}\n</script>`
+            }
+        } else {
+            const fn = ENC_FN_MAP[picked.fn]
+            if (!fn) throw new Error(`Obfuscator "${picked.fn}" tidak ditemukan.`)
+            obfuscated = fn(code)
+        }
+
+        const buffer  = Buffer.from(obfuscated, 'utf8')
+        const sizeMB  = (buffer.length / (1024 * 1024)).toFixed(2)
+        const outName = `${picked.name.toLowerCase()}-encrypted-${ses.baseName}.${outputExt}`
+
+        await ctx.telegram.sendDocument(
+            ses.chatId,
+            { source: buffer, filename: outName },
+            {
+                caption:
+                    `<blockquote><b>𝖤𝗇𝖼𝗋𝗒𝗉𝗍 𝖲𝖾𝗅𝖾𝗌𝖺𝗂</b></blockquote>\n` +
+                    `𝖥𝗂𝗅𝖾𝗌 : ${outName}\n` +
+                    `𝖲𝗂𝗓𝖾 : ${sizeMB} MB\n` +
+                    `𝖳𝗒𝗉𝖾 : ${picked.name}`,
+                parse_mode: 'HTML'
+            }
+        )
+
+        await ctx.telegram.deleteMessage(ses.chatId, waitMsg.message_id).catch(() => {})
+
+    } catch (err) {
+        console.error('[enc_pick]', err)
+        await ctx.telegram.editMessageText(
+            ses.chatId, waitMsg.message_id, undefined,
+            `❌ Gagal enc:\n${err.message}`
+        ).catch(() => {})
+    }
+})
+
+// Batal
+bot.action(/^enc_cancel:(\d+)$/, async (ctx) => {
+    await ctx.answerCbQuery('Dibatalkan.')
+    const userId = parseInt(ctx.match[1])
+    if (ctx.from.id !== userId) return
+
+    const ses = encSessions.get(userId)
+    encSessions.delete(userId)
+
+    if (ses?.menuMsgId) {
+        await ctx.telegram.deleteMessage(ses.chatId, ses.menuMsgId).catch(() => {})
+    }
+
+    await ctx.telegram.sendMessage(ses?.chatId || ctx.chat.id, '❌ Enc dibatalkan.')
+})
+
 // ==================== HARDHTML ====================
 
 bot.command("hardhtml", async (ctx) => {
