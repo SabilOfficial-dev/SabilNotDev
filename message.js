@@ -796,7 +796,7 @@ function getEncV2Keyboard() {
                 },
                 { 
                     text: "𝙽𝙴𝚇𝚃 ⪩", 
-                    callback_data: "main_menu",
+                    callback_data: "epic_menu",
                     style: style
                 }
             ]
@@ -1866,7 +1866,7 @@ function artilleryStyle(code) {
 // ─────────────────────────────────────────────────────────────────────────────
 function siuStyle(code) {
   const kanji = "和无与伦比的帅气超级厉害牛逼强大无敌"
-  const prefix = "CalceKarik"
+  const prefix = "cr7"
   const pickKanji = (n=8) => Array.from({length:n},
     ()=>kanji[Math.floor(Math.random()*kanji.length)]).join("")
   const mkId = () => prefix + pickKanji() + randId(6)
@@ -1905,7 +1905,7 @@ function siuStyle(code) {
 // ─────────────────────────────────────────────────────────────────────────────
 function reversedStyle(code) {
   const kanjiParts = ["難読","化装置","読化","装置"]
-  const suffix = "senzy"
+  const suffix = "sabil"
   const mkId = () => {
     let s = ""
     const len = 4 + Math.floor(Math.random() * 4)
@@ -2266,9 +2266,9 @@ const ENC_V2 = [
 ]
 
 const ENC_V3 = [
-    { label: '🫥 InvisHTML',  fn: 'invishtml',       name: 'InvisHTML'  },
-    { label: '💎 HardHTML',   fn: 'hardhtml',        name: 'HardHTML'   },
-    { label: '⏱️ EncTime',    fn: 'enctime',         name: 'EncTime'    },
+    { label: '🫥 Invis HTML',  fn: 'invishtml',       name: 'InvisHTML'  },
+    { label: '💎 Hard HTML',   fn: 'hardhtml',        name: 'HardHTML'   },
+    { label: '⏱️ Enc Time',    fn: 'enctime',         name: 'EncTime'    },
     { label: '✏️ Custom Enc',  fn: 'custom',       name: 'custom'  },
 ]
 
@@ -2462,7 +2462,7 @@ bot.action(/^enc_pick:(v[123]):(\d+):(\d+)$/, async (ctx) => {
     if (ses.menuMsgId)
         await ctx.telegram.deleteMessage(ses.chatId, ses.menuMsgId).catch(() => {})
 
-    await runEnc(ctx.telegram, ses, picked, version)
+    await runEnc(ctx.telegram, ses, picked)
 })
 
 // ── Handler teks untuk custom / EncTime ────────────────────────────────────
@@ -2509,25 +2509,41 @@ bot.on('text', async (ctx, next) => {
     if (ses.menuMsgId)
         await ctx.telegram.deleteMessage(ses.chatId, ses.menuMsgId).catch(() => {})
 
-    await runEnc(ctx.telegram, ses, pending.picked, 'v3')
+    await runEnc(ctx.telegram, ses, pending.picked)
 })
 
 // ── Core enc runner ───────────────────────────────────────────────────────────
-async function runEnc(telegram, ses, picked, version) {
+async function runEnc(telegram, ses, picked) {
+    // Kirim pesan awal progress
     const waitMsg = await telegram.sendMessage(
         ses.chatId,
-        `<blockquote><b>Memulai Enc</b></blockquote>\n📊 Persentase : 10%\nType : ${picked.name}`,
+        `\n<blockquote><b>Memulai Enc</b></blockquote>\n📊Persentase : 10%\nType : ${picked.name}`,
         { parse_mode: 'HTML' }
     )
 
+    // Buat fake ctx supaya sendEncryptProgress bisa jalan
+    const fakeCtx = {
+        telegram,
+        from:    { id: ses.chatId },
+        chat:    { id: ses.chatId },
+        reply:            (text, opts) => telegram.sendMessage(ses.chatId, text, opts),
+        replyWithDocument:(doc,  opts) => telegram.sendDocument(ses.chatId, doc, opts),
+        deleteMessage:    (msgId)      => telegram.deleteMessage(ses.chatId, msgId).catch(() => {}),
+    }
+
     try {
+        // Download file dari Telegram
         const file     = await telegram.getFile(ses.fileId)
         const link     = `https://api.telegram.org/file/bot${config.BOT_TOKEN}/${file.file_path}`
         const response = await axios.get(link, { responseType: 'text' })
         const code     = response.data
 
-        let obfuscated
+        // Jalankan progress 20% → 100% (persis sama dengan processObfuscate)
+        await sendEncryptProgress(fakeCtx, waitMsg, picked.name)
+
+        // Proses obfuscate sesuai type
         const outputExt = ses.fileType === 'html' ? 'html' : 'js'
+        let obfuscated
 
         if (picked.fn === 'invishtml') {
             const uni = escape(Buffer.from(code).toString('base64'))
@@ -2546,6 +2562,7 @@ async function runEnc(telegram, ses, picked, version) {
             obfuscated = fn(code)
         }
 
+        // Kirim file hasil
         const buffer  = Buffer.from(obfuscated, 'utf8')
         const sizeMB  = (buffer.length / (1024 * 1024)).toFixed(2)
         const outName = `${picked.name.toLowerCase()}-encrypted-${ses.baseName}.${outputExt}`
@@ -2563,13 +2580,15 @@ async function runEnc(telegram, ses, picked, version) {
             }
         )
 
+        // Hapus pesan progress setelah file terkirim
         await telegram.deleteMessage(ses.chatId, waitMsg.message_id).catch(() => {})
 
     } catch (err) {
         console.error('[runEnc]', err)
         await telegram.editMessageText(
             ses.chatId, waitMsg.message_id, undefined,
-            `❌ Gagal enc:\n${err.message}`
+            `❌ <b>Gagal enc!</b>\n\n<code>${err.message}</code>`,
+            { parse_mode: 'HTML' }
         ).catch(() => {})
     }
 }
