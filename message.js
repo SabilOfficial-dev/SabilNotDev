@@ -804,6 +804,26 @@ function getEncV2Keyboard() {
     };
 }
 
+function getepicKeyboard() {
+    const style = getDiscoStyle();
+    return {
+        inline_keyboard: [
+            [
+                { 
+                    text: "⪨ 𝙱𝙰𝙲𝙺", 
+                    callback_data: "enc_menu_v2",
+                    style: style
+                },
+                { 
+                    text: "𝙽𝙴𝚇𝚃 ⪩", 
+                    callback_data: "main_menu",
+                    style: style
+                }
+            ]
+        ]
+    };
+}
+
 function getcrotown() {
     const style = getDiscoStyle();
     return {
@@ -1326,6 +1346,44 @@ async function EncV2(ctx, messageId = null) {
     }
 }
 
+async function epic(ctx, messageId = null) {
+    const keyboard = getEncV2Keyboard();
+    const caption = `\`\`\`js
+━━━ ⚙ 𝘚𝘱𝘦𝘤𝘪𝘢𝘭 𝘔𝘦𝘯𝘶 ━━━
+ ♱ /enc 𝖱𝖾𝗉𝗅𝗒 𝖶𝗂𝗍𝗁 𝖥𝗂𝗅𝖾.𝗃𝗌
+ 
+ ━━━ 🔍 Cara Penggunaan ━━━
+ ♱ /enc Reply File.js
+ ♱ Pilih Polling - Pilih Type\`\`\`
+`;
+    const thumb = await getThumbnailBuffer();
+    if (messageId) {
+        if (thumb) {
+            await ctx.telegram.editMessageMedia(ctx.chat.id, messageId, undefined, {
+                type: 'photo',
+                media: { source: thumb },
+                caption,
+                parse_mode: 'Markdown'
+            }, { reply_markup: keyboard });
+            startDisco(ctx, messageId, getepicKeyboard);
+        } else {
+            await ctx.telegram.editMessageText(ctx.chat.id, messageId, undefined, caption, {
+                parse_mode: 'Markdown',
+                reply_markup: keyboard
+            });
+            startDisco(ctx, messageId, getepicKeyboard);
+        }
+    } else {
+        if (thumb) {
+            await ctx.replyWithPhoto({ source: thumb }, { caption, parse_mode: 'Markdown', reply_markup: keyboard });
+            startDisco(ctx, messageId, getepicKeyboard);
+        } else {
+            await ctx.reply(caption, { parse_mode: 'Markdown', reply_markup: keyboard });
+          startDisco(ctx, messageId, getepicKeyboard);  
+        }
+    }
+}
+
 // ==================== CALLBACK ====================
 bot.action('open_menu', async (ctx) => {
     const messageId = ctx.callbackQuery.message.message_id;
@@ -1355,6 +1413,12 @@ bot.action('tools_menu', async (ctx) => {
     const messageId = ctx.callbackQuery.message.message_id;
     await ctx.answerCbQuery();
     await showMenu2(ctx, messageId);
+});
+
+bot.action('epic_menu', async (ctx) => {
+    const messageId = ctx.callbackQuery.message.message_id;
+    await ctx.answerCbQuery();
+    await epic(ctx, messageId);
 });
 
 bot.action("owner_menu", async (ctx) => {
