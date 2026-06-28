@@ -1284,7 +1284,7 @@ async function EncV2(ctx, messageId = null) {
     const keyboard = getEncV2Keyboard();
     const caption = `\`\`\`js
 ━━━ ⚙️ 𝖤𝗇𝖼𝗋𝗒𝗉𝗍 𝖬𝖾𝗇𝗎 𝖵𝟤 ━━━
- ♱ /enccustom 𝖢𝗎𝗌𝗍𝗈𝗆 𝖭𝖺𝗆𝖾
+ ♱ /custom 𝖢𝗎𝗌𝗍𝗈𝗆 𝖭𝖺𝗆𝖾
  ♱ /invisenc 𝖨𝗇𝗏𝗂𝗌𝖻𝗅𝖾 𝖧𝖺𝗋𝖽
  ♱ /japanenc 𝖩𝖺𝗉𝖺𝗇𝖾𝗌𝖾 𝖲𝗍𝗒𝗅𝖾
  ♱ /encarab 𝖠𝗋𝖺𝖻 𝖲𝗍𝗒𝗅𝖾
@@ -1295,7 +1295,7 @@ async function EncV2(ctx, messageId = null) {
  ♱ /invishtml Encrypt Hmtl
 
 ━━━ 🔍 Cara Penggunaan ━━━
- ♱ /enccustom 果Prime皮Sabil出
+ ♱ /custom 果Prime皮Sabil出
  ♱ Jangan ada spasi dalam text\`\`\`
 `;
     const thumb = await getThumbnailBuffer();
@@ -2149,7 +2149,7 @@ ctx,
 }
 )
 
-// /enccustom
+// /custom
 bot.command(
 'custom',
 async(ctx)=>{
@@ -2163,7 +2163,7 @@ ctx.message.text
 if(!text){
 
 return ctx.reply(
-'❌ Example : /enccustom SabilOfficial'
+'❌ Example : /custom SabilOfficial'
 )
 
 }
@@ -2171,7 +2171,7 @@ return ctx.reply(
 await processObfuscate(
 ctx,
 (code)=>customStyle(code, text),
-'EncCustom'
+'custom'
 )
 
 }
@@ -2205,7 +2205,7 @@ const ENC_V3 = [
     { label: '🫥 InvisHTML',  fn: 'invishtml',       name: 'InvisHTML'  },
     { label: '💎 HardHTML',   fn: 'hardhtml',        name: 'HardHTML'   },
     { label: '⏱️ EncTime',    fn: 'enctime',         name: 'EncTime'    },
-    { label: '✏️ EncCustom',  fn: 'custom',       name: 'EncCustom'  },
+    { label: '✏️ Custom Enc',  fn: 'custom',       name: 'custom'  },
 ]
 
 const ENC_FN_MAP = {
@@ -2360,8 +2360,8 @@ bot.action(/^enc_pick:(v[123]):(\d+):(\d+)$/, async (ctx) => {
     const picked = list[idx]
     if (!picked) return ctx.telegram.sendMessage(ses.chatId, '❌ Type tidak valid.')
 
-    // ── EncCustom: minta input teks dulu ──────────────────────────────────────
-    if (picked.fn === 'enccustom') {
+    // ── custom: minta input teks dulu ──────────────────────────────────────
+    if (picked.fn === 'custom') {
         // Edit menu jadi prompt, jangan hapus dulu
         const promptCaption =
             `<blockquote><b>✏️ Enc Custom</b></blockquote>\n` +
@@ -2372,7 +2372,7 @@ bot.action(/^enc_pick:(v[123]):(\d+):(\d+)$/, async (ctx) => {
         } else {
             await ctx.editMessageText(promptCaption, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [] } }).catch(() => {})
         }
-        ses.pendingParam = { type: 'enccustom', picked }
+        ses.pendingParam = { type: 'custom', picked }
         encSessions.set(userId, ses)
         return
     }
@@ -2401,7 +2401,7 @@ bot.action(/^enc_pick:(v[123]):(\d+):(\d+)$/, async (ctx) => {
     await runEnc(ctx.telegram, ses, picked, version)
 })
 
-// ── Handler teks untuk EncCustom / EncTime ────────────────────────────────────
+// ── Handler teks untuk custom / EncTime ────────────────────────────────────
 bot.on('text', async (ctx, next) => {
     const userId = ctx.from.id
     const ses    = encSessions.get(userId)
@@ -2413,7 +2413,7 @@ bot.on('text', async (ctx, next) => {
     const pending = ses.pendingParam
     delete ses.pendingParam
 
-    // Validasi EncCustom: tanpa spasi
+    // Validasi custom: tanpa spasi
     if (pending.type === 'custom') {
         if (!input || /\s/.test(input)) {
             ses.pendingParam = pending   // kembalikan state
@@ -2470,7 +2470,7 @@ async function runEnc(telegram, ses, picked, version) {
             obfuscated = `<script>\neval(\natob(\nunescape(\n"${uni}"\n)\n)\n)\n</script>`
         } else if (picked.fn === 'hardhtml') {
             obfuscated = `<script>\n${hardcoreStyle(code)}\n</script>`
-        } else if (picked.fn === 'enccustom') {
+        } else if (picked.fn === 'custom') {
             if (!picked.param) throw new Error('Parameter custom name kosong.')
             obfuscated = customStyle(code, picked.param)
         } else if (picked.fn === 'enctime') {
