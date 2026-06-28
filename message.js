@@ -2163,7 +2163,7 @@ ctx.message.text
 if(!text){
 
 return ctx.reply(
-'❌ Example : /custom SabilOfficial'
+'❌ Example : /enccustom SabilOfficial'
 )
 
 }
@@ -2171,7 +2171,7 @@ return ctx.reply(
 await processObfuscate(
 ctx,
 (code)=>customStyle(code, text),
-'Custom'
+'EncCustom'
 )
 
 }
@@ -2372,7 +2372,7 @@ bot.action(/^enc_pick:(v[123]):(\d+):(\d+)$/, async (ctx) => {
         } else {
             await ctx.editMessageText(promptCaption, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [] } }).catch(() => {})
         }
-        ses.pendingParam = { type: 'custom', picked }
+        ses.pendingParam = { type: 'enccustom', picked }
         encSessions.set(userId, ses)
         return
     }
@@ -2449,37 +2449,21 @@ bot.on('text', async (ctx, next) => {
 })
 
 // ── Core enc runner ───────────────────────────────────────────────────────────
-async function runEnc(telegram, ses, picked) {
-    // Buat fake ctx supaya bisa pakai sendEncryptProgress
+async function runEnc(telegram, ses, picked, version) {
     const waitMsg = await telegram.sendMessage(
         ses.chatId,
-        `\n<blockquote><b>Memulai Enc</b></blockquote>\n📊Persentase : 10%\nType : ${picked.name}`,
+        `<blockquote><b>Memulai Enc</b></blockquote>\n📊 Persentase : 10%\nType : ${picked.name}`,
         { parse_mode: 'HTML' }
     )
 
-    const fakeCtx = {
-        telegram,
-        from:    { id: ses.chatId },
-        chat:    { id: ses.chatId },
-        message: { chat: { id: ses.chatId } },
-        reply:            (text, opts) => telegram.sendMessage(ses.chatId, text, opts),
-        replyWithDocument:(doc,  opts) => telegram.sendDocument(ses.chatId, doc, opts),
-        deleteMessage:    (msgId)      => telegram.deleteMessage(ses.chatId, msgId).catch(() => {}),
-    }
-
     try {
-        // Download file
         const file     = await telegram.getFile(ses.fileId)
         const link     = `https://api.telegram.org/file/bot${config.BOT_TOKEN}/${file.file_path}`
         const response = await axios.get(link, { responseType: 'text' })
         const code     = response.data
 
-        // Jalankan sendEncryptProgress — persis sama dengan processObfuscate
-        await sendEncryptProgress(fakeCtx, waitMsg, picked.name)
-
-        // Proses obfuscate
-        const outputExt = ses.fileType === 'html' ? 'html' : 'js'
         let obfuscated
+        const outputExt = ses.fileType === 'html' ? 'html' : 'js'
 
         if (picked.fn === 'invishtml') {
             const uni = escape(Buffer.from(code).toString('base64'))
@@ -2498,7 +2482,6 @@ async function runEnc(telegram, ses, picked) {
             obfuscated = fn(code)
         }
 
-        // Kirim file hasil
         const buffer  = Buffer.from(obfuscated, 'utf8')
         const sizeMB  = (buffer.length / (1024 * 1024)).toFixed(2)
         const outName = `${picked.name.toLowerCase()}-encrypted-${ses.baseName}.${outputExt}`
@@ -2522,8 +2505,7 @@ async function runEnc(telegram, ses, picked) {
         console.error('[runEnc]', err)
         await telegram.editMessageText(
             ses.chatId, waitMsg.message_id, undefined,
-            `❌ <b>Gagal enc!</b>\n\n<code>${err.message}</code>`,
-            { parse_mode: 'HTML' }
+            `❌ Gagal enc:\n${err.message}`
         ).catch(() => {})
     }
 }
